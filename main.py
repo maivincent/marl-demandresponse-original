@@ -3,6 +3,7 @@
 from agents.dqn import DQN
 from agents.ppo import PPO
 from agents.mappo import MAPPO
+from agents.tarmac.a2c_acktr import A2C_ACKTR as TARMAC
 from train_dqn import train_dqn
 from train_ppo import train_ppo
 from train_mappo import train_mappo
@@ -27,7 +28,7 @@ def main():
     obs_dict = env.reset()
 
     # Select agent
-    agents = {"ppo": PPO, "mappo": MAPPO, "dqn": DQN}
+    agents = {"ppo": PPO, "mappo": MAPPO, "dqn": DQN, "tarmac": TARMAC}
 
     num_state = len(normStateDict(obs_dict[next(iter(obs_dict))], config_dict))
     print("Number of states: {}".format(num_state))

@@ -841,6 +841,10 @@ class ClusterHouses(object):
                     ids_houses_messages.append(agent_id_new)
                 self.agent_communicators[agent_id] = ids_houses_messages
             print("self.agent_communicators: {}".format(self.agent_communicators))
+        
+        elif self.cluster_prop["agents_comm_mode"] == "no_message":
+            for agent_id in self.agent_ids:
+                self.agent_communicators[agent_id] = []
 
         else:
             raise ValueError(
