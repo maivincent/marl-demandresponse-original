@@ -7,6 +7,7 @@ from agents.tarmac.a2c_acktr import A2C_ACKTR as TARMAC
 from train_dqn import train_dqn
 from train_ppo import train_ppo
 from train_mappo import train_mappo
+from train_tarmac import train_tarmac
 from config import config_dict
 from cli import cli_train
 from env.MA_DemandResponse import MADemandResponseEnv
@@ -37,7 +38,7 @@ def main():
     agent = agents[opt.agent_type](config_dict, opt, num_state=num_state, wandb_run = wandb_run) # num_state, num_action
     
     # Start training
-    train = {"ppo": train_ppo, "mappo": train_mappo, "dqn": train_dqn}
+    train = {"ppo": train_ppo, "mappo": train_mappo, "dqn": train_dqn, "tarmac": train_tarmac}"}
     train[opt.agent_type](env, agent, opt, config_dict, render, log_wandb, wandb_run)
 
 #%%

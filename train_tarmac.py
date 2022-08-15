@@ -36,15 +36,15 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, actor_critic: Multi
     #TODO: implement obs_shape in env in gym format
 
     # Fake variables
-    opt.nb_updates = 15
-    opt.time_steps_per_episode = 10000
+    opt.nb_updates = 5
+    opt.time_steps_per_episode = 1000
 
     obs_dict = env.reset()
 
     obs_shape = normStateDict(obs_dict[0], config_dict).shape       #(obs_size,)
 
-    obs_nparray = obs_dict2obs_nparray(obs_shape, obs_dict, config_dict) # [nb agents, obs_size] # the first dimensnion is dealt within the rollout storage
-
+    obs_nparray = obs_dict2obs_nparray(obs_shape, obs_dict, config_dict) # [1, nb agents, obs_size]
+    print("obs_nparray.shape", obs_nparray.shape)
     #action_shape = torch.tensor([0]).shape      # torch.Size([1])
 
     rollouts = MultiAgentRolloutStorage(n_agents=opt.nb_agents,obs_shape=obs_shape, num_steps=opt.time_steps_per_episode, num_processes=1, state_size=STATE_SIZE, communication_size=COMMUNICATION_SIZE)
@@ -55,24 +55,23 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, actor_critic: Multi
 
     print("Training Tarmac")
 
+
     for j in range(opt.nb_updates):
-        episode_rewards = torch.zeros([1, opt.nb_agents, 1])
+        episode_return = torch.zeros([1, opt.nb_agents, 1])
         final_rewards = torch.zeros([1, opt.nb_agents, 1])
         print("Update {}".format(j))
         action_mean = 0
         actions_log_prob = 0
         for step in range(opt.time_steps_per_episode):
             if step % 1000 == 0:
-                print("Step {}".format(step))
-                print("action mean: ", action_mean)
                 action_mean = 0
-                print("actions_log_prob", actions_log_prob)
             # Sample actions
             with torch.no_grad():
-                value, actions, actions_log_prob, states, communications, aux = actor_critic.act(
-                    rollouts.observations[step], rollouts.states[step], 
+                value, actions, actions_log_prob, states, communications, aux = actor_critic.act(               # Action is a tensor of shape [1, nb_agents, 1], value is a tensor of shape [1, 1], actions_log_prob is a tensor of shape [1, nb_agents, 1], 
+                    rollouts.observations[step], rollouts.states[step],                                         # communication is a tensor of shape [1, nb_agents, COMMUNICATION_SIZE], states is a tensor of shape [1, nb_agents, STATE_SIZE],
                     rollouts.communications[step], rollouts.masks[step],
                 )
+
             action_mean += actions/1000
             actions_dict = actionsAC2actions_dict(actions)  # [1, nb_agents, 1 (action_size)]
             # Observe reward and next obs
@@ -86,15 +85,17 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, actor_critic: Multi
             reward_np_expanded_2 = np.expand_dims(reward_np_expanded_1, axis=0) # (1, nb_agents, 1)
             reward = torch.from_numpy(reward_np_expanded_2)
 
-            episode_rewards += reward           # (1, nb_agents, 1)
+            episode_return += reward           # (1, nb_agents, 1)
+            print(episode_return)
 
             masks = torch.FloatTensor([[0.0] if done_dict[i] else [1.0] for i in range(opt.nb_agents)])  # [nb_agents, 1]
             masks = masks.unsqueeze(0)                      # [1, nb_agents, 1]
 
             final_rewards *= masks
-            final_rewards += (1 - masks) * episode_rewards
-            episode_rewards *= masks
-            
+            final_rewards += (1 - masks) * episode_return              #[1, nb_agents, 1]
+            print(final_rewards)
+            episode_return *= masks                                    #[1, nb_agents, 1]
+
             obs = torch.tensor(obs)
 
             rollouts.insert(obs, states, actions, actions_log_prob, value, reward, masks, communications)
@@ -109,10 +110,17 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, actor_critic: Multi
         value_loss, action_loss, dist_entropy = agent.update_multi_agent(rollouts)
 
 
-        print("Episode_rewards: {}".format(episode_rewards))
+        #print("Episode_rewards: {}".format(episode_rewards))
 
         obs_dict = env.reset()
         obs_nparray = obs_dict2obs_nparray(obs_shape, obs_dict, config_dict)
+        #print("Returns: {}", rollouts.returns)
+
+        total_num_steps = (j + 1) * opt.time_steps_per_episode + j
+        print("[t:%010d][rwd:%.02f/%.02f][entropy:%.05f][value_loss:%.05f][policy_loss:%.05f]"
+                % (total_num_steps,
+                   final_rewards.mean(), final_rewards.median(), dist_entropy,
+                   value_loss, action_loss))
 
         rollouts.reset()
         rollouts.observations[0].copy_(torch.from_numpy(obs_nparray))
@@ -120,7 +128,6 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, actor_critic: Multi
         #rollouts.after_update()
 
 
-    #print("Returns: {}", rollouts.returns)
 
 def obs_dict2obs_tensor(obs_shape, obs_dict: dict, config_dict: dict) -> torch.Tensor:
     obs_tensor = torch.empty(obs_shape, dtype=torch.float32).unsqueeze(dim=1)
@@ -136,6 +143,7 @@ def obs_dict2obs_nparray(obs_shape, obs_dict: dict, config_dict: dict) -> np.nda
         obs = normStateDict(obs_dict[key], config_dict).reshape(1, -1)
         obs_np_array = np.concatenate((obs_np_array, obs), axis=0)
     obs_np_array = obs_np_array[1:,:]
+    obs_np_array = np.expand_dims(obs_np_array, axis = 0)
     return obs_np_array
 
 def actionsAC2actions_dict(actions: torch.tensor) -> dict:
