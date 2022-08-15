@@ -345,7 +345,7 @@ def cli_train():
         "--max_grad_norm",
         type=float,
         default=-1,
-        help="PPO gradient norm maximum"
+        help="Gradient norm maximum"
         )
 
     parser.add_argument(
@@ -401,6 +401,90 @@ def cli_train():
         help="Learning rate"
     )
 
+## TarMAC agent (only those which were not already added in PPO or DQN agent)
+    parser.add_argument(
+        "--recurrent_policy",
+        choices = ['True','False'],
+        default = 'True',
+        help="Whether to use a recurrent policy"
+    )
+
+    parser.add_argument(
+        "--state_size",
+        type=int,
+        default=-1,
+        help="Size of the internal state vector"
+    )
+
+    parser.add_argument(
+        "--communication_size",
+        type=int,
+        default=-1,
+        help="Size of the communication vector"
+    )
+
+    parser.add_argument(
+        "--tarmac_communication_mode",
+        type=str,
+        default="config",
+        help="Communication mode for tarmac (can be: 'no_comm', 'from_states_rec_att', 'from_states')"
+    )
+
+    parser.add_argument(
+        "--comm_num_hops",  
+        type=int,
+        default=-1,
+        help="Number of hops (rounds) for the communication"    
+    )
+
+    parser.add_argument(
+        "--value_loss_coef",
+        type=float,
+        default=-1,
+        help="Value loss coefficient"
+    )
+
+    parser.add_argument(
+        "--entropy_coef",
+        type=float,
+        default=-1,
+        help="Entropy coefficient"
+    )
+
+    parser.add_argument(
+        "--tarmac_lr",
+        type=float,
+        default=-1,
+        help="Learning rate for TarMAC"
+    )
+
+    parser.add_argument(
+        "--tarmac_eps",
+        type=float,
+        default=-1,
+        help="Epsilon for TarMAC optimizer (RMSProp or Adam)"
+    )
+
+    parser.add_argument(
+        "--tarmac_gamma",
+        type=float,
+        default=-1,
+        help="Discount factor for TarMAC"
+    )
+
+    parser.add_argument(
+        "--tarmac_alpha",
+        type=float,
+        default=-1,
+        help="Alpha for TarMAC optimizer (RMSProp or Adam)"
+    )
+
+    parser.add_argument(
+        "--tarmac_max_grad_norm",
+        type=float,
+        default=-1,
+        help="Maximum gradient norm for TarMAC"
+    )
 ### Training parameters
 
     parser.add_argument(

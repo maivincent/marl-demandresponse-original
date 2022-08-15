@@ -74,7 +74,7 @@ def train_mappo(env, agent, opt, config_dict, render, log_wandb, wandb_run):
             # Store transition
             agent.store_transition(Transition(normStateDict(obs_dict[k], config_dict), action[k], other_action_list, action_prob[k], rewards_dict[k], normStateDict(next_obs_dict[k], config_dict), done))
             # Update metrics
-            metrics.update(k, obs_dict, next_obs_dict, rewards_dict, env)
+            metrics.update(k, next_obs_dict, rewards_dict, env)
 
 
         # Set next state as current state

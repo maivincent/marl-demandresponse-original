@@ -150,6 +150,34 @@ def adjust_config_train(opt, config_dict):
         config_dict["DQN_prop"]["epsilon_decay"] = opt.epsilon_decay    
     if opt.min_epsilon != -1:
         config_dict["DQN_prop"]["min_epsilon"] = opt.min_epsilon    
+
+## TarMAC agent
+# NN architecture
+    if opt.recurrent_policy == "False":
+        config_dict["TarMAC_prop"]["recurrent_policy"] = False
+    if opt.state_size != -1:
+        config_dict["TarMAC_prop"]["state_size"] = opt.state_size
+    if opt.communication_size != -1:
+        config_dict["TarMAC_prop"]["communication_size"] = opt.communication_size
+    if opt.tarmac_communication_mode != "config":
+        config_dict["TarMAC_prop"]["tarmac_communication_mode"] = opt.tarmac_communication_mode
+    if opt.comm_num_hops != -1:
+        config_dict["TarMAC_prop"]["comm_num_hops"] = opt.comm_num_hops
+    if opt.value_loss_coef != -1:
+        config_dict["TarMAC_prop"]["value_loss_coef"] = opt.value_loss_coef
+    if opt.entropy_coef != -1:
+        config_dict["TarMAC_prop"]["entropy_coef"] = opt.entropy_coef
+    if opt.tarmac_max_grad_norm != -1:
+        config_dict["TarMAC_prop"]["tarmac_max_grad_norm"] = opt.tarmac_max_grad_norm
+    if opt.tarmac_lr != -1:
+        config_dict["TarMAC_prop"]["tarmac_lr"] = opt.tarmac_lr
+    if opt.tarmac_eps != -1:
+        config_dict["TarMAC_prop"]["tarmac_eps"] = opt.tarmac_eps
+    if opt.tarmac_gamma != -1:
+        config_dict["TarMAC_prop"]["tarmac_gamma"] = opt.tarmac_gamma
+    if opt.tarmac_alpha != -1:
+        config_dict["TarMAC_prop"]["tarmac_alpha"] = opt.tarmac_alpha
+
         
 def adjust_config_deploy(opt, config_dict):
     if opt.nb_agents != -1:

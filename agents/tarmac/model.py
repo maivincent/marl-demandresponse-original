@@ -328,7 +328,6 @@ class MultiAgentBase(nn.Module):
                 inputs = torch.cat((obs, communications * masks), dim=2)
 
             x = self.common(inputs)
-
             if hasattr(self, 'gru'):
                 x = x.view(-1, self.state_size)
                 states = states.view(-1, self.state_size)

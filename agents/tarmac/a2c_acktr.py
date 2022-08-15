@@ -1,32 +1,62 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
-
-
+from agents.tarmac.model import MultiAgentPolicy
 
 class A2C_ACKTR(object):
-    def __init__(self,
-                 actor_critic,
-                 value_loss_coef,
-                 entropy_coef,
-                 lr=None,
-                 eps=None,
-                 alpha=None,
-                 max_grad_norm=None,
-                 distributed=False):
 
-        self.actor_critic = actor_critic
+    def __init__(self, config_dict, opt, num_state, wandb_run):
+        self.config_dict = config_dict
+        self.opt = opt
+        self.num_state = num_state
+        self.wandb_run = wandb_run
 
-        self.value_loss_coef = value_loss_coef
-        self.entropy_coef = entropy_coef
+        self.parameters = self.config_dict['TarMAC_prop']
+        self.recurrent_policy = self.parameters['recurrent_policy']
+        self.state_size = self.parameters['state_size']
+        self.communication_size = self.parameters['communication_size']
+        self.communication_mode = self.parameters['tarmac_communication_mode']
+        self.comm_num_hops = self.parameters['comm_num_hops']
+        self.value_loss_coef = self.parameters['value_loss_coef']
+        self.entropy_coef = self.parameters['entropy_coef']
+        self.lr = self.parameters['tarmac_lr']
+        self.eps = self.parameters['tarmac_eps']
+        self.gamma = self.parameters['tarmac_gamma']
+        self.alpha = self.parameters['tarmac_alpha']
+        self.distributed = self.parameters['distributed']
+        self.max_grad_norm = self.parameters['tarmac_max_grad_norm']
 
-        self.max_grad_norm = max_grad_norm
 
-        self.optimizer = optim.Adam(actor_critic.parameters(), lr=lr)#, eps=eps)
+        self.actor_critic = MultiAgentPolicy(n_agents=opt.nb_agents, obs_size=self.num_state, num_actions=2, recurrent_policy=False,
+            state_size=self.state_size, comm_size=self.communication_size, comm_mode=self.communication_mode, comm_num_hops=1, use_cnn=False, env='MA_DemandResponse')
+        
+
+        self.optimizer = self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=self.lr)
+        #optim.RMSprop(filter(lambda p: p.requires_grad, actor_critic.parameters()), lr=self.lr, eps=self.eps, alpha=self.alpha)
+        
+ #   def __init__(self,
+ #                actor_critic,
+ #                value_loss_coef,
+ #                entropy_coef,
+ #                lr=None,
+ #                eps=None,
+ #                alpha=None,
+ #                max_grad_norm=None,
+ #                distributed=False):
+ #       #
+
+ #       self.actor_critic = actor_critic
+
+ #       self.value_loss_coef = value_loss_coef
+ #       self.entropy_coef = entropy_coef
+
+#        self.max_grad_norm = max_grad_norm
+
+ #       self.optimizer = optim.Adam(actor_critic.parameters(), lr=lr)#, eps=eps)
         #optim.RMSprop(
             #filter(lambda p: p.requires_grad, actor_critic.parameters()), lr, eps=eps, alpha=alpha)
 
-        self.distributed = distributed
+  #      self.distributed = distributed
 
     def update(self, rollouts):
         obs_shape = rollouts.observations.size()[2:]
@@ -94,6 +124,7 @@ class A2C_ACKTR(object):
         values = values.view(num_steps, num_processes, 1)
         action_log_probs = action_log_probs.view(num_steps, num_processes, n_agents, 1)
         advantages = rollouts.returns[:-1] - values.unsqueeze(2).expand(num_steps, num_processes, n_agents, 1)
+        #print("advantages: {}".format(advantages))
         value_loss = advantages.pow(2).mean()
 
         # copy over advantage for all actions

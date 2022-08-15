@@ -346,14 +346,16 @@ config_dict = {
 	"recurrent_policy": True, 	# Use RNN
 	"state_size": 128, 			# Size of the RNN state
 	"communication_size": 32, 	# Size of the communication message
-	"communication_mode": "from_states_rec_att",			# Mode of communication protocole (not the same as communication_mode of the cluster)
+	"tarmac_communication_mode": "from_states_rec_att",			# Mode of communication protocole (not the same as communication_mode of the cluster)
 	"comm_num_hops": 1,			# Number of hops during the communication
-	"value_loss_coeff": 0.5,	# Coefficient of the value loss in the loss function
-	"entropy_coeff": 0.01,		# Coefficient of the entropy loss in the loss function
-	"lr": 7e-4,					# Learning rate
-	"eps": 1e-5,				# Epsilon for RMSProp or Adam optimizer
-	"gamma": 0.99,				# Discount factor
-	"alpha": 0.99,				# Alpha for RMSProp optimizer
+	"value_loss_coef": 0.5,	# Coefficient of the value loss in the loss function
+	"entropy_coef": 0.01,		# Coefficient of the entropy loss in the loss function
+	"tarmac_lr": 7e-4,					# Learning rate
+	"tarmac_eps": 1e-5,				# Epsilon for RMSProp or Adam optimizer
+	"tarmac_gamma": 0.99,				# Discount factor
+	"tarmac_alpha": 0.99,				# Alpha for RMSProp optimizer
+	"tarmac_max_grad_norm": 0.5,		# Maximal norm of the gradient. If None, no clipping is done.
+	"distributed": False,
 	},
 
 "DQN_prop": {

@@ -38,7 +38,7 @@ def main():
     agent = agents[opt.agent_type](config_dict, opt, num_state=num_state, wandb_run = wandb_run) # num_state, num_action
     
     # Start training
-    train = {"ppo": train_ppo, "mappo": train_mappo, "dqn": train_dqn, "tarmac": train_tarmac}"}
+    train = {"ppo": train_ppo, "mappo": train_mappo, "dqn": train_dqn, "tarmac": train_tarmac}
     train[opt.agent_type](env, agent, opt, config_dict, render, log_wandb, wandb_run)
 
 #%%
