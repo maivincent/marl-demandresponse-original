@@ -89,7 +89,7 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
                     rollouts.observations[-1], rollouts.states[-1],
                     rollouts.communications[-1], rollouts.masks[-1]).detach()
             rollouts.compute_returns(next_value, use_gae=False, gamma=0.99, tau=0.95) #TODO: change default values with config_dict
-            value_loss, action_loss, dist_entropy = agent.update_multi_agent(rollouts)
+            value_loss, action_loss, dist_entropy = agent.update_multi_agent(rollouts, t)
 
             # Logging
             if log_wandb:

@@ -33,7 +33,7 @@ class A2C_ACKTR(object):
 
         self.optimizer = self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=self.lr)
         #optim.RMSprop(filter(lambda p: p.requires_grad, actor_critic.parameters()), lr=self.lr, eps=self.eps, alpha=self.alpha)
-        
+
  #   def __init__(self,
  #                actor_critic,
  #                value_loss_coef,
@@ -106,7 +106,7 @@ class A2C_ACKTR(object):
 
         return value_loss.item(), action_loss.item(), dist_entropy.item()
 
-    def update_multi_agent(self, rollouts):
+    def update_multi_agent(self, rollouts, t):
         n_agents, obs_shape = rollouts.observations.size(
             2), rollouts.observations.size()[3:]
         action_shape = rollouts.actions.size()[-1]
@@ -124,7 +124,6 @@ class A2C_ACKTR(object):
         values = values.view(num_steps, num_processes, 1)
         action_log_probs = action_log_probs.view(num_steps, num_processes, n_agents, 1)
         advantages = rollouts.returns[:-1] - values.unsqueeze(2).expand(num_steps, num_processes, n_agents, 1)
-        #print("advantages: {}".format(advantages))
         value_loss = advantages.pow(2).mean()
 
         # copy over advantage for all actions
@@ -137,8 +136,9 @@ class A2C_ACKTR(object):
         self.optimizer.zero_grad()
         (value_loss * self.value_loss_coef + action_loss -
          dist_entropy * self.entropy_coef).backward()
-        nn.utils.clip_grad_norm_(self.actor_critic.parameters(),
+        grad_norm = nn.utils.clip_grad_norm_(self.actor_critic.parameters(),
                                  self.max_grad_norm)
+        self.wandb_run.log({'grad_norm': grad_norm, "Training steps": t})
 
         if self.distributed == True:
             self.average_gradients()
