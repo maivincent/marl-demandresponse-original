@@ -90,6 +90,16 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
                     rollouts.communications[-1], rollouts.masks[-1]).detach()
             rollouts.compute_returns(next_value, use_gae=False, gamma=0.99, tau=0.95) #TODO: change default values with config_dict
             value_loss, action_loss, dist_entropy = agent.update_multi_agent(rollouts)
+
+            # Logging
+            if log_wandb:
+                wandb_run.log({
+                    "Value loss": value_loss,
+                    "Action loss": action_loss,
+                    "Distribution entropy": dist_entropy,
+                    "Training steps": t
+                })
+
             obs_dict = env.reset()
 
             obs_torch = obs_dict2obs_torch(obs_shape, obs_dict, config_dict)
