@@ -10,7 +10,10 @@ from utils import (
     normStateDict,
     saveActorNetDict,
     render_and_wandb_init,
-    test_ppo_agent
+    test_tarmac_agent,
+    obs_dict2obs_torch,
+    actionsAC2actions_dict,
+    reward_dict2reward_torch
 )
 
 import os
@@ -64,6 +67,7 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
             renderer.render(obs_dict)
 
         step = t % time_steps_per_epoch
+
         # Sample actions
         with torch.no_grad():
             value, actions, actions_log_prob, states, communications, aux = actor_critic.act(               # Action is a tensor of shape [1, nb_agents, 1], value is a tensor of shape [1, 1], actions_log_prob is a tensor of shape [1, nb_agents, 1], 
@@ -106,6 +110,14 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
             rollouts.reset()
             rollouts.observations[0].copy_(obs_torch)
 
+        if t % time_steps_test_log == time_steps_test_log - 1:        # Test policy
+            print(f"Testing at time {t}")
+            metrics_test = test_tarmac_agent(agent.actor_critic, env, config_dict, opt, t, rollouts.observations[0], rollouts.states[0], rollouts.communications[0], rollouts.masks[0])
+            if log_wandb:
+                wandb_run.log(metrics_test)
+            else:
+                print("Training step - {}".format(t))
+
 
         # Log train statistics
         if t % time_steps_train_log == time_steps_train_log - 1:       # Log train statistics
@@ -117,32 +129,6 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
 
 
 
-
-
-
-
-def obs_dict2obs_torch(obs_shape, obs_dict: dict, config_dict: dict) -> np.ndarray:
-    obs_np_array = np.empty(obs_shape, dtype=np.float32).reshape(1, -1)
-    for key in obs_dict.keys():
-        obs = normStateDict(obs_dict[key], config_dict).reshape(1, -1)
-        obs_np_array = np.concatenate((obs_np_array, obs), axis=0)
-    obs_np_array = obs_np_array[1:,:]
-    obs_np_array = np.expand_dims(obs_np_array, axis = 0)
-    return torch.from_numpy(obs_np_array)
-
-def actionsAC2actions_dict(actions: torch.tensor) -> dict:
-    cpu_actions = actions.view(-1,1).cpu().numpy()
-    actions_dict = {}
-    for i, action in enumerate(cpu_actions):
-        actions_dict[i] = action[0]
-    return actions_dict
-
-def reward_dict2reward_torch(reward_dict: dict) -> torch.tensor:
-    reward_np = np.array(list(reward_dict.values()))
-    reward_np_expanded_1 = np.expand_dims(reward_np, axis=1)
-    reward_np_expanded_2 = np.expand_dims(reward_np_expanded_1, axis=0) # (1, nb_agents, 1)
-    reward = torch.from_numpy(reward_np_expanded_2)
-    return reward
 
 if __name__ == "__main__":
     import os

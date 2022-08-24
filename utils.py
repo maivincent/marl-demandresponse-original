@@ -571,6 +571,78 @@ def test_ppo_agent(agent, env, config_dict, opt, tr_time_steps):
         "Training steps": tr_time_steps,
     }
 
+def test_tarmac_agent(agent, env, config_dict, opt, tr_time_steps, init_obs, init_states, init_comms, init_masks):
+    "Test tarmac agent on an episode of nb_test_timesteps"
+    env = deepcopy(env)
+    cumul_avg_reward = 0
+    cumul_temp_error = 0
+    cumul_signal_error = 0
+    cumul_temp_offset = 0
+    obs_dict = env.reset()
+    obs_shape = normStateDict(obs_dict[0], config_dict).shape       #(obs_size,)
+    obs_torch = obs_dict2obs_torch(obs_shape, obs_dict, config_dict) # [1, nb agents, obs_size]
+
+
+
+    #obs_torch = init_obs
+
+    states = init_states
+    communications = init_comms
+    masks = init_masks
+    
+    with torch.no_grad():
+        for t in range(opt.nb_time_steps_test):
+            _, actions, _, states, communications, _ = agent.act(obs_torch, states, communications, masks)
+            actions_dict = actionsAC2actions_dict(actions)  # [1, nb_agents, 1 (action_size)]
+            obs_dict, rewards_dict, done_dict, _ = env.step(actions_dict)
+            obs_torch = obs_dict2obs_torch(obs_shape, obs_dict, config_dict)            # [1, nb_agents, obs_size]
+            masks = torch.FloatTensor([[0.0] if done_dict[i] else [1.0] for i in range(env.nb_agents)]).unsqueeze(0)  # [1, nb_agents, 1]
+
+            for i in range(env.nb_agents):
+                cumul_avg_reward += rewards_dict[i] / env.nb_agents
+                cumul_temp_error += (
+                    np.abs(obs_dict[i]["house_temp"] - obs_dict[i]["house_target_temp"])
+                    / env.nb_agents
+                )
+                cumul_temp_offset += (obs_dict[i]["house_temp"] - obs_dict[i]["house_target_temp"])/ env.nb_agents
+                cumul_signal_error += np.abs(
+                    obs_dict[i]["reg_signal"] - obs_dict[i]["cluster_hvac_power"]
+                ) / (env.nb_agents**2)
+    mean_avg_return = cumul_avg_reward / opt.nb_time_steps_test
+    mean_temp_error = cumul_temp_error / opt.nb_time_steps_test
+    mean_signal_error = cumul_signal_error / opt.nb_time_steps_test
+    mean_temp_offset = cumul_temp_offset / opt.nb_time_steps_test
+
+    return {
+        "Mean test return": mean_avg_return,
+        "Test mean temperature error": mean_temp_error,
+        "Test mean signal error": mean_signal_error,
+        "Test mean temperature offset": mean_temp_offset,
+        "Training steps": tr_time_steps,
+    } 
+
+def obs_dict2obs_torch(obs_shape, obs_dict: dict, config_dict: dict) -> np.ndarray:
+    obs_np_array = np.empty(obs_shape, dtype=np.float32).reshape(1, -1)
+    for key in obs_dict.keys():
+        obs = normStateDict(obs_dict[key], config_dict).reshape(1, -1)
+        obs_np_array = np.concatenate((obs_np_array, obs), axis=0)
+    obs_np_array = obs_np_array[1:,:]
+    obs_np_array = np.expand_dims(obs_np_array, axis = 0)
+    return torch.from_numpy(obs_np_array).float()
+
+def actionsAC2actions_dict(actions: torch.tensor) -> dict:
+    cpu_actions = actions.view(-1,1).cpu().numpy()
+    actions_dict = {}
+    for i, action in enumerate(cpu_actions):
+        actions_dict[i] = action[0]
+    return actions_dict
+
+def reward_dict2reward_torch(reward_dict: dict) -> torch.tensor:
+    reward_np = np.array(list(reward_dict.values()))
+    reward_np_expanded_1 = np.expand_dims(reward_np, axis=1)
+    reward_np_expanded_2 = np.expand_dims(reward_np_expanded_1, axis=0) # (1, nb_agents, 1)
+    reward = torch.from_numpy(reward_np_expanded_2).float()
+    return reward
 
 
 def saveActorNetDict(agent, path, t=None):
