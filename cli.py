@@ -210,26 +210,26 @@ def cli_train():
 
     parser.add_argument(
         "--state_day",
-        choices = ['True','False'],
-        default='True',
+        default='config',
+        choices = ['True','False', 'config'],
         help="Include day in the state")
 
     parser.add_argument(
         "--state_hour",
-        choices = ['True','False'],
-        default='True',
+        default='config',
+        choices = ['True','False', 'config'],
         help="Include hour in the state")
 
     parser.add_argument(
         "--state_solar_gain",
-        choices = ['True','False'],
-        default='False',
+        default='config',
+        choices = ['True','False', 'config'],
         help="Include solar gain in the state")
-
+        
     parser.add_argument(
         "--state_thermal",
-        choices = ['True','False'],
-        default = 'True',
+        default='config',
+        choices = ['True','False', 'config'],
         help="Include outdoors temperature, and house thermal parameters, in the state.")
 
 
@@ -395,10 +395,10 @@ def cli_train():
     )
         
     parser.add_argument(
-        "--DQN_lr",
+        "--lr",
         type=float,
         default=-1,
-        help="Learning rate"
+        help="Learning rate (for DQN and TarMAC)"
     )
 
 ## TarMAC agent (only those which were not already added in PPO or DQN agent)
@@ -451,40 +451,24 @@ def cli_train():
         help="Entropy coefficient"
     )
 
-    parser.add_argument(
-        "--tarmac_lr",
-        type=float,
-        default=-1,
-        help="Learning rate for TarMAC"
-    )
+
 
     parser.add_argument(
-        "--tarmac_eps",
+        "--eps",
         type=float,
         default=-1,
         help="Epsilon for TarMAC optimizer (RMSProp or Adam)"
     )
 
-    parser.add_argument(
-        "--tarmac_gamma",
-        type=float,
-        default=-1,
-        help="Discount factor for TarMAC"
-    )
 
     parser.add_argument(
-        "--tarmac_alpha",
+        "--alpha",
         type=float,
         default=-1,
         help="Alpha for TarMAC optimizer (RMSProp or Adam)"
     )
 
-    parser.add_argument(
-        "--tarmac_max_grad_norm",
-        type=float,
-        default=-1,
-        help="Maximum gradient norm for TarMAC"
-    )
+ 
 ### Training parameters
 
     parser.add_argument(
@@ -725,32 +709,34 @@ def cli_deploy(agents_dict):
     )
     parser.add_argument(
         "--state_day",
-        default='True',
-        choices = ['True','False'],
+        default='config',
+        choices = ['True','False', 'config'],
         help="Include day in the state")
 
     parser.add_argument(
         "--state_hour",
-        default='True',
-        choices = ['True','False'],
+        default='config',
+        choices = ['True','False', 'config'],
         help="Include hour in the state")
 
     parser.add_argument(
         "--state_solar_gain",
-        default='False',
-        choices = ['True','False'],
+        default='config',
+        choices = ['True','False', 'config'],
         help="Include solar gain in the state")
+        
+    parser.add_argument(
+        "--state_thermal",
+        default='config',
+        choices = ['True','False', 'config'],
+        help="Include outdoors temperature, and house thermal parameters, in the state.")
 
     parser.add_argument(
         "--start_datetime_mode",
         default='config',
         help="Decide if start date time is 'fixed' or uniformly 'random'.")
 
-    parser.add_argument(
-        "--state_thermal",
-        choices = ['True','False'],
-        default = 'True',
-        help="Include outdoors temperature, and house thermal parameters, in the state.")
+
 
     parser.add_argument(
         "--artificial_signal_ratio",

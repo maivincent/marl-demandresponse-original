@@ -27,156 +27,234 @@ def render_and_wandb_init(opt, config_dict):
 def adjust_config_train(opt, config_dict):
     """Changes configuration of config_dict based on args."""
 
+    print("Configuration elements changed by the CLI:")
 ### Environment
+    print(" -- General environment properties --")
     if opt.nb_agents != -1:
         config_dict["default_env_prop"]["cluster_prop"]["nb_agents"] = opt.nb_agents
+        print("Setting nb_agents to {}".format(opt.nb_agents))
     if opt.time_step != -1:
         config_dict["default_env_prop"]["time_step"] = opt.time_step
+        print("Setting time_step to {}".format(opt.time_step))
 
 ## Reward
+    print(" -- Reward properties --")
     if opt.alpha_temp != -1:
+        print("Setting alpha_temp to {}".format(opt.alpha_temp))
         config_dict["default_env_prop"]["reward_prop"]["alpha_temp"] = opt.alpha_temp
     if opt.alpha_sig != -1:
+        print("Setting alpha_sig to {}".format(opt.alpha_sig))
         config_dict["default_env_prop"]["reward_prop"]["alpha_sig"] = opt.alpha_sig
     if opt.temp_penalty_mode != "config":
+        print("Setting temp_penalty_mode to {}".format(opt.temp_penalty_mode))
         config_dict["default_env_prop"]["reward_prop"]["temp_penalty_mode"] = opt.temp_penalty_mode
     if opt.alpha_ind_L2 != -1:
+        print("Setting alpha_ind_L2 to {}".format(opt.alpha_ind_L2))
         config_dict["default_env_prop"]["reward_prop"]["temp_penalty_parameters"]["mixture"]["alpha_ind_L2"] = opt.alpha_ind_L2
     if opt.alpha_common_L2 != -1:
+        print("Setting alpha_common_L2 to {}".format(opt.alpha_common_L2))
         config_dict["default_env_prop"]["reward_prop"]["temp_penalty_parameters"]["mixture"]["alpha_common_L2"] = opt.alpha_common_L2
     if opt.alpha_common_max != -1:
+        print("Setting alpha_common_max to {}".format(opt.alpha_common_max))
         config_dict["default_env_prop"]["reward_prop"]["temp_penalty_parameters"]["mixture"]["alpha_common_max"] = opt.alpha_common_max
 
 ## Simulator
 # Outdoors
+    print("-- Outdoors environment --")
     if opt.OD_temp_mode != "config":
+        print("Setting OD_temp_mode to {}".format(opt.OD_temp_mode))
         config_dict["default_env_prop"]["cluster_prop"]["temp_mode"] = opt.OD_temp_mode
     config_dict["default_house_prop"]["solar_gain_bool"] = not opt.no_solar_gain
+    print("Setting solar_gain_bool to {}".format(not opt.no_solar_gain))
 # House and HVAC
+    print("-- HVAC properties --")
     if opt.cooling_capacity != -1:
+        print("Setting cooling_capacity to {}".format(opt.cooling_capacity))
         config_dict["default_hvac_prop"]["cooling_capacity"] = opt.cooling_capacity
     if opt.lockout_duration != -1:
+        print("Setting lockout_duration to {}".format(opt.lockout_duration))
         config_dict["default_hvac_prop"]["lockout_duration"] = opt.lockout_duration
 # Noise
+    print("-- Noise properties --")
     if opt.house_noise_mode != "config":
+        print("Setting house_noise_mode to {}".format(opt.house_noise_mode))
         config_dict["noise_house_prop"]["noise_mode"] = opt.house_noise_mode
     if opt.house_noise_mode_test == "train":
+        print("Setting house_noise_mode_test to {}".format(config_dict["noise_house_prop"]["noise_mode"]))
         config_dict["noise_house_prop_test"]["noise_mode"] = config_dict["noise_house_prop"]["noise_mode"]
     else:
+        print("Setting house_noise_mode_test to {}".format(opt.house_noise_mode_test))
         config_dict["noise_house_prop_test"]["noise_mode"] = opt.house_noise_mode_test
     if opt.hvac_noise_mode != "config":
+        print("Setting hvac_noise_mode to {}".format(opt.hvac_noise_mode))
         config_dict["noise_hvac_prop"]["noise_mode"] = opt.hvac_noise_mode
     if opt.hvac_noise_mode_test == "train":
+        print("Setting hvac_noise_mode_test to {}".format(config_dict["noise_hvac_prop_test"]["noise_mode"]))
         config_dict["noise_hvac_prop_test"]["noise_mode"] = config_dict["noise_hvac_prop_test"]["noise_mode"]
     else:
+        print("Setting hvac_noise_mode_test to {}".format(opt.hvac_noise_mode_test))
         config_dict["noise_hvac_prop_test"]["noise_mode"] = opt.hvac_noise_mode_test
 
 ## Signal
+    print("-- Signal --")
     if opt.signal_mode != "config":
+        print("Setting signal_mode to {}".format(opt.signal_mode))
         config_dict["default_env_prop"]["power_grid_prop"]["signal_mode"] = opt.signal_mode
     if opt.base_power_mode != "config":
+        print("Setting base_power_mode to {}".format(opt.base_power_mode))
         config_dict["default_env_prop"]["power_grid_prop"]["base_power_mode"] = opt.base_power_mode
     config_dict["default_env_prop"]["power_grid_prop"]["artificial_ratio"] = opt.artificial_signal_ratio
+    print("Setting artificial_ratio to {}".format(opt.artificial_signal_ratio))
     if opt.artificial_signal_ratio_range != -1:
+        print("Setting artificial_signal_ratio_range to {}".format(opt.artificial_signal_ratio_range))
         config_dict["default_env_prop"]["power_grid_prop"]["artificial_signal_ratio_range"] = opt.artificial_signal_ratio_range
 
 
 ## State
-    config_dict["default_env_prop"]["state_properties"]["solar_gain"] = opt.state_solar_gain == 'True'
-    config_dict["default_env_prop"]["state_properties"]["hour"] = opt.state_hour == 'True'
-    config_dict["default_env_prop"]["state_properties"]["day"] = opt.state_day == 'True'
-    config_dict["default_env_prop"]["state_properties"]["thermal"] = opt.state_thermal == 'True'
+    print("-- Agent observations --")
+    if opt.state_solar_gain != "config":
+        print("Setting state solar gain to {}".format(opt.state_solar_gain))
+        config_dict["default_env_prop"]["state_properties"]["solar_gain"] = opt.state_solar_gain
+    if opt.state_hour != "config":
+        print("Setting state hour to {}".format(opt.state_hour))
+        config_dict["default_env_prop"]["state_properties"]["hour"] = opt.state_hour
+    if opt.state_day != "config":
+        print("Setting state day to {}".format(opt.state_day))
+        config_dict["default_env_prop"]["state_properties"]["day"] = opt.state_day
+    if opt.state_thermal != "config":
+        print("Setting state thermal to {}".format(opt.state_thermal))
+        config_dict["default_env_prop"]["state_properties"]["thermal"] = opt.state_thermal
 
 
 ### Agent
 
-## Agent communication constraints
 
+## Agent communication constraints
+    print("-- Agent communication constraints --")
     if opt.nb_agents_comm != -1:
+        print("Setting nb_agents_comm to {}".format(opt.nb_agents_comm))
         config_dict["default_env_prop"]["cluster_prop"]["nb_agents_comm"] = opt.nb_agents_comm
     if opt.agents_comm_mode != "config":
+        print("Setting agents_comm_mode to {}".format(opt.agents_comm_mode))
         config_dict["default_env_prop"]["cluster_prop"]["agents_comm_mode"] = opt.agents_comm_mode
+    
+    agent = opt.agent_type
+    if agent == "ppo":
+        print("-- PPO agent --")
+    ## PPO agent
+    # NN architecture
+        if opt.layers_actor != "config":
+            print("Setting PPO layers_actor to {}".format(opt.layers_actor))
+            config_dict["PPO_prop"]["actor_layers"] = opt.layers_actor
+        if opt.layers_critic != "config":
+            print("Setting PPO layers_critic to {}".format(opt.layers_critic))
+            config_dict["PPO_prop"]["critic_layers"] = opt.layers_critic
+        if opt.layers_both != "config":
+            print("Setting PPO layers_both to {}".format(opt.layers_both))
+            config_dict["PPO_prop"]["actor_layers"] = opt.layers_both
+            config_dict["PPO_prop"]["critic_layers"] = opt.layers_both
+    # NN optimization
+        if opt.batch_size != -1:
+            print("Setting PPO batch_size to {}".format(opt.batch_size))
+            config_dict["PPO_prop"]["batch_size"] = opt.batch_size
+        if opt.lr_critic != -1:
+            print("Setting PPO lr_critic to {}".format(opt.lr_critic))
+            config_dict["PPO_prop"]["lr_critic"] = opt.lr_critic
+        if opt.lr_actor != -1:
+            print("Setting PPO lr_actor to {}".format(opt.lr_actor))
+            config_dict["PPO_prop"]["lr_actor"] = opt.lr_actor
+        if opt.lr_both != -1:
+            print("Setting PPO lr_both to {}".format(opt.lr_both))
+            config_dict["PPO_prop"]["lr_critic"] = opt.lr_both
+            config_dict["PPO_prop"]["lr_actor"] = opt.lr_both
+            if opt.lr_actor != -1 or opt.lr_critic != -1:
+                raise ValueError("Potential conflict: both lr_both and lr_actor or lr_critic were set in the CLI")
+    # RL optimization
+        if opt.gamma != -1:
+            print("Setting PPO gamma to {}".format(opt.gamma))
+            config_dict["PPO_prop"]["gamma"] = opt.gamma
+        if opt.clip_param != -1:
+            print("Setting PPO clip_param to {}".format(opt.clip_param))
+            config_dict["PPO_prop"]["clip_param"] = opt.clip_param
+        if opt.max_grad_norm != -1:
+            print("Setting PPO max_grad_norm to {}".format(opt.max_grad_norm))
+            config_dict["PPO_prop"]["max_grad_norm"] = opt.max_grad_norm
+        if opt.ppo_update_time != -1:
+            print("Setting PPO ppo_update_time to {}".format(opt.ppo_update_time))
+            config_dict["PPO_prop"]["ppo_update_time"] = opt.ppo_update_time
 
-## PPO agent
-# NN architecture
-    if opt.layers_actor != "config":
-        config_dict["PPO_prop"]["actor_layers"] = opt.layers_actor
-    if opt.layers_critic != "config":
-        config_dict["PPO_prop"]["critic_layers"] = opt.layers_critic
-    if opt.layers_both != "config":
-        config_dict["PPO_prop"]["actor_layers"] = opt.layers_both
-        config_dict["PPO_prop"]["critic_layers"] = opt.layers_both
-# NN optimization
-    if opt.batch_size != -1:
-        config_dict["PPO_prop"]["batch_size"] = opt.batch_size
-    if opt.lr_critic != -1:
-        config_dict["PPO_prop"]["lr_critic"] = opt.lr_critic
-    if opt.lr_actor != -1:
-        config_dict["PPO_prop"]["lr_actor"] = opt.lr_actor
-    if opt.lr_both != -1:
-        config_dict["PPO_prop"]["lr_critic"] = opt.lr_both
-        config_dict["PPO_prop"]["lr_actor"] = opt.lr_both
-        if opt.lr_actor != -1 or opt.lr_critic != -1:
-            raise ValueError("Potential conflict: both lr_both and lr_actor or lr_critic were set in the CLI")
-# RL optimization
-    if opt.gamma != -1:
-        config_dict["PPO_prop"]["gamma"] = opt.gamma
-    if opt.clip_param != -1:
-        config_dict["PPO_prop"]["clip_param"] = opt.clip_param
-    if opt.max_grad_norm != -1:
-        config_dict["PPO_prop"]["max_grad_norm"] = opt.max_grad_norm
-    if opt.ppo_update_time != -1:
-        config_dict["PPO_prop"]["ppo_update_time"] = opt.ppo_update_time
+    elif agent == "dqn":
+        print("-- DQN agent --")
+    ## DQN agent
+    # NN architecture
+        if opt.DQNnetwork_layers != "config":
+            print("Setting DQNnetwork_layers to {}".format(opt.DQNnetwork_layers))
+            config_dict["DQN_prop"]["network_layers"] = opt.DQNnetwork_layers
 
-## DQN agent
-# NN architecture
-    if opt.DQNnetwork_layers != "config":
-        config_dict["DQN_prop"]["network_layers"] = opt.DQNnetwork_layers
+    # NN optimization
+        if opt.batch_size != -1:
+            print("Setting DQN batch_size to {}".format(opt.batch_size))
+            config_dict["DQN_prop"]["batch_size"] = opt.batch_size
+        if opt.lr != -1:
+            print("Setting DQN_lr to {}".format(opt.lr))
+            config_dict["DQN_prop"]["lr"] = opt.lr       
 
-# NN optimization
-    if opt.batch_size != -1:
-        config_dict["DQN_prop"]["batch_size"] = opt.batch_size
-    if opt.DQN_lr != -1:
-        config_dict["DQN_prop"]["lr"] = opt.DQN_lr       
+    # RL optimization
+        if opt.gamma != -1:
+            print("Setting DQN gamma to {}".format(opt.gamma))
+            config_dict["DQN_prop"]["gamma"] = opt.gamma
+        if opt.tau != -1:
+            print("Setting DQN tau to {}".format(opt.tau))
+            config_dict["DQN_prop"]["tau"] = opt.tau
+        if opt.buffer_capacity != -1:
+            print("Setting DQN buffer_capacity to {}".format(opt.buffer_capacity))
+            config_dict["DQN_prop"]["buffer_capacity"] = opt.buffer_capacity    
+        if opt.epsilon_decay != -1:
+            print("Setting DQN epsilon_decay to {}".format(opt.epsilon_decay))
+            config_dict["DQN_prop"]["epsilon_decay"] = opt.epsilon_decay    
+        if opt.min_epsilon != -1:
+            print("Setting DQN min_epsilon to {}".format(opt.min_epsilon))
+            config_dict["DQN_prop"]["min_epsilon"] = opt.min_epsilon    
 
-# RL optimization
-    if opt.gamma != -1:
-        config_dict["DQN_prop"]["gamma"] = opt.gamma
-    if opt.tau != -1:
-        config_dict["DQN_prop"]["tau"] = opt.tau
-    if opt.buffer_capacity != -1:
-        config_dict["DQN_prop"]["buffer_capacity"] = opt.buffer_capacity    
-    if opt.epsilon_decay != -1:
-        config_dict["DQN_prop"]["epsilon_decay"] = opt.epsilon_decay    
-    if opt.min_epsilon != -1:
-        config_dict["DQN_prop"]["min_epsilon"] = opt.min_epsilon    
-
-## TarMAC agent
-# NN architecture
-    if opt.recurrent_policy == "False":
-        config_dict["TarMAC_prop"]["recurrent_policy"] = False
-    if opt.state_size != -1:
-        config_dict["TarMAC_prop"]["state_size"] = opt.state_size
-    if opt.communication_size != -1:
-        config_dict["TarMAC_prop"]["communication_size"] = opt.communication_size
-    if opt.tarmac_communication_mode != "config":
-        config_dict["TarMAC_prop"]["tarmac_communication_mode"] = opt.tarmac_communication_mode
-    if opt.comm_num_hops != -1:
-        config_dict["TarMAC_prop"]["comm_num_hops"] = opt.comm_num_hops
-    if opt.value_loss_coef != -1:
-        config_dict["TarMAC_prop"]["value_loss_coef"] = opt.value_loss_coef
-    if opt.entropy_coef != -1:
-        config_dict["TarMAC_prop"]["entropy_coef"] = opt.entropy_coef
-    if opt.tarmac_max_grad_norm != -1:
-        config_dict["TarMAC_prop"]["tarmac_max_grad_norm"] = opt.tarmac_max_grad_norm
-    if opt.tarmac_lr != -1:
-        config_dict["TarMAC_prop"]["tarmac_lr"] = opt.tarmac_lr
-    if opt.tarmac_eps != -1:
-        config_dict["TarMAC_prop"]["tarmac_eps"] = opt.tarmac_eps
-    if opt.tarmac_gamma != -1:
-        config_dict["TarMAC_prop"]["tarmac_gamma"] = opt.tarmac_gamma
-    if opt.tarmac_alpha != -1:
-        config_dict["TarMAC_prop"]["tarmac_alpha"] = opt.tarmac_alpha
+    elif agent == "tarmac":
+        print("-- TarMAC agent --")
+    ## TarMAC agent
+        if opt.recurrent_policy == "False":
+            print("Setting TarMAC recurrent_policy to False")
+            config_dict["TarMAC_prop"]["recurrent_policy"] = False
+        if opt.state_size != -1:
+            print("Setting TarMAC state_size to {}".format(opt.state_size))
+            config_dict["TarMAC_prop"]["state_size"] = opt.state_size
+        if opt.communication_size != -1:
+            print("Setting TarMAC communication_size to {}".format(opt.communication_size))
+            config_dict["TarMAC_prop"]["communication_size"] = opt.communication_size
+        if opt.tarmac_communication_mode != "config":
+            print("Setting tarmac_communication_mode to {}".format(opt.tarmac_communication_mode))
+            config_dict["TarMAC_prop"]["tarmac_communication_mode"] = opt.tarmac_communication_mode
+        if opt.comm_num_hops != -1:
+            print("Setting TarMAC comm_num_hops to {}".format(opt.comm_num_hops))
+            config_dict["TarMAC_prop"]["comm_num_hops"] = opt.comm_num_hops
+        if opt.value_loss_coef != -1:
+            print("Setting TarMAC value_loss_coef to {}".format(opt.value_loss_coef))
+            config_dict["TarMAC_prop"]["value_loss_coef"] = opt.value_loss_coef
+        if opt.entropy_coef != -1:
+            print("Setting TarMAC entropy_coef to {}".format(opt.entropy_coef))
+            config_dict["TarMAC_prop"]["entropy_coef"] = opt.entropy_coef
+        if opt.max_grad_norm != -1:
+            print("Setting TarMAC max_grad_norm to {}".format(opt.max_grad_norm))
+            config_dict["TarMAC_prop"]["tarmac_max_grad_norm"] = opt.max_grad_norm
+        if opt.lr != -1:
+            print("Setting TarMAC lr to {}".format(opt.lr))
+            config_dict["TarMAC_prop"]["lr"] = opt.lr
+        if opt.eps != -1:
+            print("Setting TarMAC eps to {}".format(opt.eps))
+            config_dict["TarMAC_prop"]["tarmac_eps"] = opt.eps
+        if opt.gamma != -1:
+            print("Setting TarMAC gamma to {}".format(opt.gamma))
+            config_dict["TarMAC_prop"]["tarmac_gamma"] = opt.gamma
+        if opt.alpha != -1:
+            print("Setting TarMAC alpha to {}".format(opt.alpha))
+            config_dict["TarMAC_prop"]["tarmac_alpha"] = opt.alpha
 
         
 def adjust_config_deploy(opt, config_dict):
@@ -225,10 +303,14 @@ def adjust_config_deploy(opt, config_dict):
     if opt.start_datetime_mode != "config":
         config_dict["default_env_prop"]["start_datetime_mode"] = opt.start_datetime_mode
 
-    config_dict["default_env_prop"]["state_properties"]["solar_gain"] = opt.state_solar_gain == 'True'
-    config_dict["default_env_prop"]["state_properties"]["hour"] = opt.state_hour == 'True'
-    config_dict["default_env_prop"]["state_properties"]["day"] = opt.state_day == 'True'
-    config_dict["default_env_prop"]["state_properties"]["thermal"] = opt.state_thermal == 'True'
+    if opt.state_solar_gain != "config":
+        config_dict["default_env_prop"]["state_properties"]["solar_gain"] = opt.state_solar_gain
+    if opt.state_hour != "config":
+        config_dict["default_env_prop"]["state_properties"]["hour"] = opt.state_hour
+    if opt.state_day != "config":
+        config_dict["default_env_prop"]["state_properties"]["day"] = opt.state_day
+    if opt.state_thermal != "config":
+        config_dict["default_env_prop"]["state_properties"]["thermal"] = opt.state_thermal
 
     config_dict["default_env_prop"]["power_grid_prop"]["artificial_ratio"] = opt.artificial_signal_ratio
 
@@ -734,7 +816,7 @@ def house_solar_gain(date_time, window_area, shading_coeff):
     Return:
     solar_gain: float, direct solar radiation passing through the windows at a given moment in Watts
 
-    Par¸ameters
+    Parameters
     date_time: datetime, current date and time
 
     ---

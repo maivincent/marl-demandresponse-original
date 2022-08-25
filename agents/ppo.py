@@ -80,9 +80,10 @@ class PPO():
         gradient_norms = np.array([])
         # print("The agent is updateing....")
         for i in range(self.ppo_update_time):
+            if self.training_step % 1000 == 0:
+                print('Time step: {} ，train {} times'.format(t, self.training_step))
             for index in BatchSampler(SubsetRandomSampler(range(len(self.buffer))), self.batch_size, False):
-                if self.training_step % 1000 == 0:
-                    print('Time step: {} ，train {} times'.format(t, self.training_step))
+
                 # with torch.no_grad():
                 Gt_index = Gt[index].view(-1, 1)
 
@@ -118,7 +119,8 @@ class PPO():
                 value_loss.backward()
                 nn.utils.clip_grad_norm_(self.critic_net.parameters(), self.max_grad_norm)
                 self.critic_net_optimizer.step()
-                self.training_step += 1
+
+            self.training_step += 1
 
         if self.log_wandb:
 

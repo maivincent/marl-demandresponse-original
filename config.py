@@ -21,7 +21,7 @@ config_dict = {
 },
 
 "noise_house_prop" : {
-	"noise_mode": "small_noise",	#Can be: no_noise, small_noise, big_noise, small_start_temp, big_start_temp
+	"noise_mode": "big_start_temp",	#Can be: no_noise, small_noise, big_noise, small_start_temp, big_start_temp
 	"noise_parameters": {
 		"no_noise": {
 			"std_start_temp": 0,		# Std noise on starting temperature
@@ -57,7 +57,7 @@ config_dict = {
 },
 
 "noise_house_prop_test" : {
-	"noise_mode": "small_noise",	#Can be: no_noise, small_noise, big_noise, small_start_temp, big_start_temp
+	"noise_mode": "small_start_temp",	#Can be: no_noise, small_noise, big_noise, small_start_temp, big_start_temp
 	"noise_parameters": {
 		"no_noise": {
 			"std_start_temp": 0,		# Std noise on starting temperature
@@ -105,7 +105,7 @@ config_dict = {
 },
 
 "noise_hvac_prop" : {
-	"noise_mode": "small_noise",	#Can be: no_noise, small_noise, big_noise
+	"noise_mode": "no_noise",	#Can be: no_noise, small_noise, big_noise
 	"noise_parameters": {
 		"no_noise": {
 			"cooling_capacity_list": {
@@ -145,7 +145,7 @@ config_dict = {
 },
 
 "noise_hvac_prop_test" : {
-	"noise_mode": "small_noise",	#Can be: no_noise, small_noise, big_noise
+	"noise_mode": "no_noise",	#Can be: no_noise, small_noise, big_noise
 	"noise_parameters": {
 		"no_noise": {
 			"std_latent_cooling_fraction": 0,     # Std Gaussian noise on latent_cooling_fraction
@@ -180,7 +180,7 @@ config_dict = {
 	"start_datetime_mode" : "random",		# Can be random (randomly chosen in the year after original start_datetime) or fixed (stays as the original start_datetime)
 	"time_step": 4,							# Time step in seconds
 	"cluster_prop": {
-		"temp_mode": "noisy_sinusoidal",			# Can be: constant, sinusoidal, noisy_sinusoidal
+		"temp_mode": "noisy_sinusoidal_heatwave",			# Can be: constant, sinusoidal, noisy_sinusoidal
 		"temp_parameters": {
 			"constant": {
 				"day_temp": 26.5,				# Day temperature
@@ -254,9 +254,10 @@ config_dict = {
 		},
 	},
 	"state_properties": {
-		"hour": True,
-		"day": True,
-		"solar_gain": True,
+		"hour": False,
+		"day": False,
+		"solar_gain": False,
+		"thermal": False,
 	},
 	"power_grid_prop": {
 		"base_power_mode" : "interpolation", # Interpolation (based on deadband bang-bang controller) or constant
@@ -276,7 +277,7 @@ config_dict = {
 		"artificial_signal_ratio_range": 1, 			# Scale of artificial multiplicative factor randomly multiplied (or divided) at each episode during training. Ex: 1 will not modify signal. 3 will have signal between 33% and 300% of what is computed.
 		"artificial_ratio": 1.0,
 
-		"signal_mode": "regular_steps",					# Mode of the signal. Currently available: flat, sinusoidal, regular_steps
+		"signal_mode": "perlin",					# Mode of the signal. Currently available: flat, sinusoidal, regular_steps, perlin
 		"signal_parameters": {
 			"flat": {
 
@@ -356,6 +357,8 @@ config_dict = {
 	"tarmac_alpha": 0.99,				# Alpha for RMSProp optimizer
 	"tarmac_max_grad_norm": 0.5,		# Maximal norm of the gradient. If None, no clipping is done.
 	"distributed": False,
+	"nb_tarmac_updates": 10,
+	"tarmac_batch_size": 128,
 	},
 
 "DQN_prop": {
