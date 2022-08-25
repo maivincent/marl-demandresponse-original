@@ -50,7 +50,7 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
 
     # Initialize metrics
     metrics = Metrics()
-
+    actions_hist = []
 
     # Initialize environment
     obs_dict = env.reset()
@@ -76,6 +76,8 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
             )
 
         actions_dict = actionsAC2actions_dict(actions)  # [1, nb_agents, 1 (action_size)]
+        actions_hist.append(actions_dict[0])
+
         obs_dict, reward_dict, done_dict, info_dict = env.step(actions_dict)
         obs = obs_dict2obs_torch(obs_shape, obs_dict, config_dict)            # [1, nb_agents, obs_size]
         reward = reward_dict2reward_torch(reward_dict) # [1, nb_agents, 1]
@@ -93,19 +95,19 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
                     rollouts.observations[-1], rollouts.states[-1],
                     rollouts.communications[-1], rollouts.masks[-1]).detach()
             rollouts.compute_returns(next_value, use_gae=False, gamma=0.99, tau=0.95) #TODO: change default values with config_dict
-            value_loss, action_loss, dist_entropy = agent.update_multi_agent(rollouts, t)
+            value_loss, action_loss, grad_norm, dist_entropy = agent.update_multi_agent(rollouts, t)
 
             # Logging
             if log_wandb:
                 wandb_run.log({
-                    "Value loss": value_loss,
-                    "Action loss": action_loss,
-                    "Distribution entropy": dist_entropy,
+                    "Mean value loss": value_loss,
+                    "Mean action loss": action_loss,
+                    "Mean grad norm": grad_norm,
+                    "Mean distribution entropy": dist_entropy,
                     "Training steps": t
                 })
 
             obs_dict = env.reset()
-
             obs_torch = obs_dict2obs_torch(obs_shape, obs_dict, config_dict)
             rollouts.reset()
             rollouts.observations[0].copy_(obs_torch)
@@ -122,10 +124,13 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
         # Log train statistics
         if t % time_steps_train_log == time_steps_train_log - 1:       # Log train statistics
             #print("Logging stats at time {}".format(t))
+            actions_ratio = np.mean(np.array(actions_hist), axis=0)
             logged_metrics = metrics.log(t, time_steps_train_log)
             if log_wandb:
                 wandb_run.log(logged_metrics)
+                wandb_run.log({"Action ratio": actions_ratio, "Training steps": t})
             metrics.reset()
+            actions_hist = []
 
 
 

@@ -1,7 +1,10 @@
 import torch
 import torch.nn as nn
 import torch.optim as optim
+import numpy as np
 from agents.tarmac.model import MultiAgentPolicy
+from torch.utils.data.sampler import BatchSampler, SubsetRandomSampler
+
 
 class A2C_ACKTR(object):
 
@@ -25,6 +28,8 @@ class A2C_ACKTR(object):
         self.alpha = self.parameters['tarmac_alpha']
         self.distributed = self.parameters['distributed']
         self.max_grad_norm = self.parameters['tarmac_max_grad_norm']
+        self.nb_tarmac_updates = self.parameters['nb_tarmac_updates']
+        self.batch_size = self.parameters['tarmac_batch_size']
 
 
         self.actor_critic = MultiAgentPolicy(n_agents=opt.nb_agents, obs_size=self.num_state, num_actions=2, recurrent_policy=False,
@@ -112,40 +117,60 @@ class A2C_ACKTR(object):
         action_shape = rollouts.actions.size()[-1]
         num_steps, num_processes, _, _ = rollouts.rewards.size()
 
-        values, action_log_probs, dist_entropy, states = self.actor_critic.evaluate_actions(
-            rollouts.observations[:-1].view(
-                -1, n_agents, *obs_shape), rollouts.states[0].view(
-                    -1, n_agents, self.actor_critic.state_size),
-            rollouts.communications[0].view(-1, n_agents,
-                                            self.actor_critic.comm_size),
-            rollouts.masks[:-1].view(-1, 1),
-            rollouts.actions.view(-1, n_agents, action_shape))
+        grad_norms = []
+        value_losses = []
+        action_losses = []
+        dist_entropies = []
 
-        values = values.view(num_steps, num_processes, 1)
-        action_log_probs = action_log_probs.view(num_steps, num_processes, n_agents, 1)
-        advantages = rollouts.returns[:-1] - values.unsqueeze(2).expand(num_steps, num_processes, n_agents, 1)
-        value_loss = advantages.pow(2).mean()
 
-        # copy over advantage for all actions
-        # for the case where there's single
-        # team reward instead of individual rewards
-        # advantages = advantages.unsqueeze(2).expand(num_steps, num_processes,
-        #                                             n_agents, 1)
-        action_loss = -(advantages.detach() * action_log_probs).mean()
+        for i in range(self.nb_tarmac_updates):
+            for index in BatchSampler(SubsetRandomSampler(range(num_steps)), self.batch_size, False):
+                values, action_log_probs, dist_entropy, states = self.actor_critic.evaluate_actions(
+                    rollouts.observations[index].view(-1, n_agents, *obs_shape), 
+                    rollouts.states[0].view(-1, n_agents, self.actor_critic.state_size),
+                    rollouts.communications[0].view(-1, n_agents, self.actor_critic.comm_size),
+                    rollouts.masks[index].view(-1, 1),
+                    rollouts.actions[index].view(-1, n_agents, action_shape))
 
-        self.optimizer.zero_grad()
-        (value_loss * self.value_loss_coef + action_loss -
-         dist_entropy * self.entropy_coef).backward()
-        grad_norm = nn.utils.clip_grad_norm_(self.actor_critic.parameters(),
-                                 self.max_grad_norm)
-        self.wandb_run.log({'grad_norm': grad_norm, "Training steps": t})
+                values = values.view(self.batch_size, num_processes, 1)# from (num_steps, 1) (?) to (num_steps, num_processes, 1)
+                values = values.unsqueeze(2).expand(self.batch_size, num_processes, n_agents, 1)   # from (num_steps, num_processes, 1) to (num_steps, num_processes, n_agents, 1) (same value for all agents as critic is computed knowing all observations (CTDE))
 
-        if self.distributed == True:
-            self.average_gradients()
+                action_log_probs = action_log_probs.view(self.batch_size, num_processes, n_agents, 1)  # from (num_steps, n_agents, 1) to (num_steps, num_processes, n_agents, 1)
+                advantages = rollouts.returns[index] - values   
+                count = 0
+                #for i in index:
+                #    print("Returns at index {}: {}".format(i, rollouts.returns[i]))
+                #    print("Values at index {}: {}".format(i, values[count]))
+                #    print("Advantages at index {}: {}".format(i, advantages[count]))
+                #    print("Action log probs at index {}: {}".format(i, action_log_probs[count]))
+                #    count += 1
 
-        self.optimizer.step()
+                value_loss = advantages.pow(2).mean()
 
-        return value_loss.item(), action_loss.item(), dist_entropy.item()
+                # copy over advantage for all actions
+                # for the case where there's single
+                # team reward instead of individual rewards
+                # advantages = advantages.unsqueeze(2).expand(num_steps, num_processes,
+                #                                             n_agents, 1)
+                action_loss = -(advantages.detach() * action_log_probs).mean()
+
+                self.optimizer.zero_grad()
+                (value_loss * self.value_loss_coef + action_loss -
+                dist_entropy * self.entropy_coef).backward()
+                grad_norm = nn.utils.clip_grad_norm_(self.actor_critic.parameters(), self.max_grad_norm)
+
+                grad_norms.append(grad_norm)
+                value_losses.append(value_loss.item())
+                action_losses.append(action_loss.item())
+                dist_entropies.append(dist_entropy.item())
+
+
+                if self.distributed == True:
+                    self.average_gradients()
+
+                self.optimizer.step()
+
+        return np.mean(value_losses), np.mean(action_losses), np.mean(grad_norms), np.mean(dist_entropies)
 
     def average_gradients(self):
         world_size = torch.distributed.get_world_size()
