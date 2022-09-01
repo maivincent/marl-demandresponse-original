@@ -9,7 +9,7 @@ def cli_train():
     parser.add_argument(
         "--exp",
         type=str,
-        required=True,
+        # required=True,
         help="Experiment name",
     )
 
@@ -238,7 +238,7 @@ def cli_train():
     parser.add_argument(
         "--agent_type",
         type=str,
-        required=True,
+        # required=True,
         help="Type of agent (dqn, ppo)",
     )
 
