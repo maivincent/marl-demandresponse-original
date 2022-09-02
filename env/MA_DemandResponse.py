@@ -605,10 +605,14 @@ class SingleHouse(object):
         """
         Message sent by the house to other agents
         """
+        if self.hvac.power_consumption() == 0:
+            p_c = 0
+        else:
+            p_c = 6000
         message = {
             "current_temp_diff_to_target": self.current_temp - self.target_temp,
             "hvac_seconds_since_off": self.hvac.seconds_since_off,
-            "hvac_curr_consumption": self.hvac.power_consumption(),
+            "hvac_curr_consumption": p_c,
             "hvac_max_consumption": self.hvac.max_consumption,
         }
 

@@ -454,7 +454,7 @@ def normStateDict(sDict, config_dict, returnDict=False):
             "house_Ca",
             "house_Hm",
             "hvac_COP",
-            "hvac_cooling_capacity",
+            15000,
             "hvac_latent_cooling_fraction",
         ]
     else:
