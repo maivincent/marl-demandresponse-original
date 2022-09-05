@@ -22,6 +22,7 @@ def parse_args():
     parser.add_argument("--learning_fre", type=int, default=100, help="learning frequency")
     parser.add_argument("--tao", type=int, default=0.01, help="how depth we exchange the par of the nn")
     parser.add_argument("--lr_a", type=float, default=1e-2, help="learning rate for adam optimizer")
+    parser.add_argument("--gs_tau", type=float, default=1, help="Gumbel-Softmax temperature")
     parser.add_argument("--lr_c", type=float, default=1e-2, help="learning rate for adam optimizer")
     parser.add_argument("--gamma", type=float, default=0.97, help="discount factor")
     parser.add_argument("--batch_size", type=int, default=1256, help="number of episodes to optimize at the same time")

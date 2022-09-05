@@ -23,7 +23,7 @@ from utils import (
     test_ppo_agent,
 )
 from cli import cli_train
-
+import wandb
 
 # def make_env(scenario_name, arglist, benchmark=False):
 #     """
@@ -49,6 +49,29 @@ def sample_actions(prob):
     c = Categorical(torch.tensor(prob).cpu()) 
     action = c.sample() 
     return action
+def onehot_from_logits(logits):
+    """
+    Given batch of logits, return one-hot sample using epsilon greedy strategy
+    (based on given epsilon)
+    """
+    # get best (according to current policy) actions in one-hot form
+    if type(logits) == np.ndarray:
+        logits = torch.FloatTensor(logits)
+
+    dim = len(logits.shape) - 1
+    argmax_acs = (logits == logits.max(dim, keepdim=True)[0]).float()
+    return argmax_acs
+
+def sample(softmax_sample_logits, hard=True, scalar_idx=True):
+    y = softmax_sample_logits
+    if hard:
+        y_hard = onehot_from_logits(y)
+        #print(y_hard[0], "random")
+        y = (y_hard - y).detach() + y
+    if scalar_idx:
+        # differentiable indexing [0,0,0,0,1] dot [0,1,2,3,4] = 4  
+        y = y@torch.tensor(list(range(1,1+len(y)))).float()-1
+    return y
 
 def make_env(config_dict):
     env = MADemandResponseEnv(config_dict)
@@ -193,7 +216,7 @@ def agents_train(
             )
             q = critic_c(obs_n_o, action_cur_o).reshape(-1)  # q
             q_ = critic_t(obs_n_n, action_tar).reshape(-1)  # q_
-            tar_value = q_ * arglist.gamma * done_n + rew  # q_*gamma*done + reward
+            tar_value = q_ * arglist.gamma + rew  # q_*gamma*done + reward
             loss_c = torch.nn.MSELoss()(q, tar_value)  # bellman equation
             opt_c.zero_grad()
             loss_c.backward()
@@ -262,7 +285,7 @@ def train(arglist, config_dict):
     """step1: create the environment """
     # env = make_env(arglist.scenario_name, arglist, arglist.benchmark)
     env = make_env(config_dict)
-    render = False
+    render = True
     if render: # render the env
         from env.renderer import Renderer
         renderer = Renderer(env.nb_agents)
@@ -347,7 +370,7 @@ def train(arglist, config_dict):
                 .numpy()
                 for agent, obs in zip(actors_cur, norm_obs_list)
             ]
-            action_dict = {j: sample_actions(action_prob_list[j]) for j in range(len(action_prob_list))}
+            action_dict = {j: sample(action_prob_list[j]).item() for j in range(len(action_prob_list))}
             # interact with env
             next_obs_dict, rewards_dict, dones_dict, info_dict = env.step(action_dict)
             next_norm_obs_dict = {k:normStateDict(next_obs_dict[k], config_dict) for k in next_obs_dict.keys()}
@@ -389,13 +412,14 @@ def train(arglist, config_dict):
             game_step += 1
             norm_obs_list = next_norm_obs_list
 
-
-
             terminal = episode_cnt >= arglist.per_episode_max_len - 1
             if done or terminal:
                 episode_step = 0
-                obs_n = env.reset()
-                agent_info.append([[]])
+                obs_dict = env.reset()
+                norm_obs_dict = {k:normStateDict(obs_dict[k], config_dict) for k in obs_dict.keys()}
+                norm_obs_list = list(norm_obs_dict.values())
+
+                agent_info.append([[]]) 
                 episode_rewards.append(0)
                 for a_r in agent_rewards:
                     a_r.append(0)
@@ -408,5 +432,13 @@ if __name__ == "__main__":
     os.environ["WANDB_SILENT"] = "true"
     opt = cli_train()
     adjust_config_train(opt, config_dict)
+    config_dict["default_env_prop"]["state_properties"]["thermal"] = False
+    config_dict["default_env_prop"]["state_properties"]["solar_gain"] = False
+    config_dict["default_env_prop"]["state_properties"]["day"] = False
+    config_dict["default_env_prop"]["state_properties"]["hour"] = False
+    config_dict["default_env_prop"]["reward_prop"]["alpha_sig"] = 0
+    # config_dict["default_hvac_prop"]["lockout_duration"] = 3
     arglist = parse_args()
+    arglist.lr_a = 1e-2
+    arglist.lr_c = 1e-2
     train(arglist, config_dict)

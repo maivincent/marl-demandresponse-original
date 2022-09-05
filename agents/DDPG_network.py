@@ -107,10 +107,10 @@ class openai_actor(abstract_agent):
         self.linear_a1 = nn.Linear(num_inputs, args.num_units_openai)
         self.linear_a2 = nn.Linear(args.num_units_openai, args.num_units_openai)
         self.linear_a = nn.Linear(args.num_units_openai, action_size)
-
+        self.Sigmoid = nn.Sigmoid()
         self.reset_parameters()
         self.train()
-    
+        self.gs_tau = args.gs_tau
     def reset_parameters(self):
         gain = nn.init.calculate_gain('leaky_relu')
         gain_tanh = nn.init.calculate_gain('tanh')
@@ -125,8 +125,8 @@ class openai_actor(abstract_agent):
         """
         x = self.LReLU(self.linear_a1(input))
         x = self.LReLU(self.linear_a2(x))
-        model_out = self.linear_a(x)
+        model_out = self.Sigmoid(self.linear_a(x)) # the output of the model is the negative log prob
         u = torch.rand_like(model_out)
-        policy = F.softmax(model_out - torch.log(-torch.log(u)), dim=-1)
+        policy = F.softmax((torch.log(model_out) - torch.log(-torch.log(u)))/self.gs_tau, dim=-1)
         if model_original_out == True:   return model_out, policy # for model_out criterion
         return policy

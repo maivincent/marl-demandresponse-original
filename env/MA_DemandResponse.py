@@ -451,7 +451,6 @@ class HVAC(object):
         self
         command: bool, action of the TCL agent (True: ON, False: OFF)
         """
-
         if self.turned_on == False:
             self.seconds_since_off += self.time_step.seconds
 

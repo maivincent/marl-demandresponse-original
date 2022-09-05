@@ -446,7 +446,7 @@ def normStateDict(sDict, config_dict, returnDict=False):
     state_prop = default_env_prop["state_properties"]
 
     result = {}
-    if state_prop["thermal"]:
+    if state_prop["thermal"]: #false
         k_temp = ["OD_temp", "house_temp", "house_mass_temp", "house_target_temp"]
         k_div = [
             "house_Ua",
@@ -467,16 +467,16 @@ def normStateDict(sDict, config_dict, returnDict=False):
         result[k] = (sDict[k] - 20) / 5
     result["house_deadband"] = sDict["house_deadband"]
 
-    if state_prop["day"]:
+    if state_prop["day"]: #false
         day = sDict["datetime"].timetuple().tm_yday
         result["sin_day"] = np.sin(day * 2 * np.pi / 365)
         result["cos_day"] = np.cos(day * 2 * np.pi / 365)
-    if state_prop["hour"]:
+    if state_prop["hour"]: #false
         hour = sDict["datetime"].hour
         result["sin_hr"] = np.sin(hour * 2 * np.pi / 24)
         result["cos_hr"] = np.cos(hour * 2 * np.pi / 24)
 
-    if state_prop["solar_gain"]:
+    if state_prop["solar_gain"]: #false
         result["house_solar_gain"] = sDict["house_solar_gain"] / 1000
 
     for k in k_div:

@@ -27,8 +27,6 @@ class DQN:
         self.buffer_cap = self.agent_prop['buffer_capacity']
         self.lr = self.agent_prop['lr']
         self.batch_size = self.agent_prop['batch_size']
-
-
         
         self.policy_net = DQN_network(num_state=num_state, num_action=num_action, layers=config_dict["DQN_prop"]["network_layers"])
         self.target_net = DQN_network(num_state=num_state, num_action=num_action, layers=config_dict["DQN_prop"]["network_layers"])
