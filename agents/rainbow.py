@@ -250,6 +250,7 @@ class DQNAgent:
                 # if episode ends
                 if done:
                     state = self.env.reset()
+                    state = {k:normStateDict(state[k], self.config_dict) for k in state.keys()}
                     scores.append(score_k)
                     score_k = 0
 
