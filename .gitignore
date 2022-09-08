@@ -32,3 +32,4 @@ monteCarlo/results/
 
 .vscode/
 save_ckpt/*/*.pt
+08_rainbow.ipynb
