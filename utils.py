@@ -1032,9 +1032,7 @@ def dictAdd(a,b):
         return {k:a+b[k] for k in b.keys()}
     elif isinstance(a, dict):
         try:
-            a = Counter(a)
-            b = Counter(b)
-            c = dict(a + b)
+            return {k:a[k]+b[k] for k in b.keys()}
             return c
         except:
             raise Exception("dictAdd: a and b must have the same keys")

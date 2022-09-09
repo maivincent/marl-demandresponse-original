@@ -189,8 +189,11 @@ class RainbowReplayBuffer:
         for transition in reversed(list(n_step_buffer)[:-1]):
             r, n_o, d = transition[-3:]
 
-            rew = r + gamma * rew
-            # rew = dictAdd(r, dictMul(gamma, rew))
+            # rew = r + gamma * rew
+            if isinstance(rew, dict) or isinstance(r, dict):
+                rew = dictAdd(r, dictMul(gamma, rew))
+            elif isinstance(rew, (float, int)) or isinstance(r, (float, int)):
+                rew = r + gamma * rew
             next_obs, done = (n_o, d) if d else (next_obs, done)
 
         return rew, next_obs, done

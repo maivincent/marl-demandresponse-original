@@ -134,7 +134,7 @@ class DQNAgent:
         self.optimizer = optim.Adam(self.dqn.parameters(), lr=self.config_dict["DQN_prop"]["lr"])
 
         # transition to store in memory
-        self.transition = list()
+        self.transition = []
         
         # mode: train / test
         self.is_test = False
@@ -142,36 +142,58 @@ class DQNAgent:
     def select_action(self, state: np.ndarray) -> np.ndarray:
         """Select an action from the input state."""
         # NoisyNet: no epsilon greedy action selection
+        
         selected_action = self.dqn(
             torch.FloatTensor(state).to(self.device)
         ).argmax()
         selected_action = selected_action.detach().cpu().numpy()
         
-        if not self.is_test:
-            self.transition = [state, selected_action]
         
         return selected_action
 
-    def step(self, action: np.ndarray, frame_idx: int, agent_id: int) -> Tuple[np.ndarray, np.float64, bool]:
+    # def step(self, action: np.ndarray, frame_idx: int, agent_id: int) -> Tuple[np.ndarray, np.float64, bool]:
+    #     """Take an action and return the response of the env."""
+    #     next_obs_dict, rewards_dict, _, _ = self.env.step(action)
+    #     next_obs_dict = normStateDict(next_obs_dict[agent_id], self.config_dict)
+    #     done = frame_idx %1000 == 999
+    #     if not self.is_test:
+    #         self.transition += [rewards_dict[agent_id], next_obs_dict, done]
+            
+    #         # N-step transition
+    #         if self.use_n_step:
+    #             one_step_transition = self.memory_n.store(*self.transition)
+    #         # 1-step transition
+    #         else:
+    #             one_step_transition = self.transition
+
+    #         # add a single step transition
+    #         if one_step_transition:
+    #             self.memory.store(*one_step_transition)
+    
+    #     return next_obs_dict, rewards_dict[agent_id], done
+
+    def step(self, states: np.ndarray, action: np.ndarray, frame_idx: int) -> Tuple[np.ndarray, np.float64, bool]:
         """Take an action and return the response of the env."""
         next_obs_dict, rewards_dict, _, _ = self.env.step(action)
-        next_obs_dict = normStateDict(next_obs_dict[agent_id], self.config_dict)
-        done = frame_idx %1000 == 999
-        if not self.is_test:
-            self.transition += [rewards_dict[agent_id], next_obs_dict, done]
-            
-            # N-step transition
-            if self.use_n_step:
-                one_step_transition = self.memory_n.store(*self.transition)
-            # 1-step transition
-            else:
-                one_step_transition = self.transition
+        next_obs_dict = {k:normStateDict(next_obs_dict[k], self.config_dict) for k in next_obs_dict.keys()}
 
-            # add a single step transition
-            if one_step_transition:
-                self.memory.store(*one_step_transition)
+        done = frame_idx %1000 == 999
+
+        if not self.is_test:
+            for k in next_obs_dict.keys():
+                self.transition = [states[k], action[k], rewards_dict[k], next_obs_dict[k], done]            
+                # N-step transition
+                if self.use_n_step:
+                    one_step_transition = self.memory_n.store(*self.transition)
+                # 1-step transition
+                else:
+                    one_step_transition = self.transition
+
+                # add a single step transition
+                if one_step_transition:
+                    self.memory.store(*one_step_transition)
     
-        return next_obs_dict, rewards_dict[agent_id], done
+        return next_obs_dict, rewards_dict, done
 
     def update_model(self) -> torch.Tensor:
         """Update the model by gradient descent."""
@@ -216,6 +238,61 @@ class DQNAgent:
 
         return loss.item()
         
+    # def train(self, num_frames: int, plotting_interval: int = 200):
+    #     """Train the agent."""
+    #     self.is_test = False
+        
+    #     state = self.env.reset()
+    #     update_cnt = 0
+    #     losses = []
+    #     scores = []
+    #     score = {k:0 for k in state.keys()}
+    #     state = {k:normStateDict(state[k], self.config_dict) for k in state.keys()}
+    #     for k in state.keys():
+    #         state_k = state[k]
+    #         score_k = score[k]
+    #         for frame_idx in range(1, num_frames + 1):
+    #             # norm_obs_dict = {k:normStateDict(state[k], self.config_dict) for k in state.keys()}
+    #             # norm_obs_list = list(norm_obs_dict.values())
+    #             # action = self.select_action(norm_obs_list)
+    #             action_dict = {k: self.select_action(state_k)}
+                
+    #             next_state, reward, done = self.step(action_dict, frame_idx, k)
+
+    #             # state_k = np.array(list(next_state.values()))
+    #             state_k = next_state
+    #             # score = dictAdd(score, reward)
+    #             score_k = score_k + reward
+    #             # NoisyNet: removed decrease of epsilon
+                
+    #             # PER: increase beta
+    #             fraction = min(frame_idx / num_frames, 1.0)
+    #             self.beta = self.beta + fraction * (1.0 - self.beta)
+
+    #             # if episode ends
+    #             if done:
+    #                 state = self.env.reset()
+    #                 state = {k:normStateDict(state[k], self.config_dict) for k in state.keys()}
+    #                 scores.append(score_k)
+    #                 score_k = 0
+
+    #             # if training is ready
+    #             if len(self.memory) >= self.batch_size:
+    #                 loss = self.update_model()
+    #                 losses.append(loss)
+    #                 update_cnt += 1
+                    
+    #                 # if hard update is needed
+    #                 if update_cnt % self.target_update == 0:
+    #                     self._target_hard_update()
+
+    #             # plotting
+    #             if frame_idx % plotting_interval == 0:
+    #                 self._plot(frame_idx, scores, losses)
+                    
+    #     self.env.close()
+
+
     def train(self, num_frames: int, plotting_interval: int = 200):
         """Train the agent."""
         self.is_test = False
@@ -226,50 +303,47 @@ class DQNAgent:
         scores = []
         score = {k:0 for k in state.keys()}
         state = {k:normStateDict(state[k], self.config_dict) for k in state.keys()}
-        for k in state.keys():
-            state_k = state[k]
-            score_k = score[k]
-            for frame_idx in range(1, num_frames + 1):
-                # norm_obs_dict = {k:normStateDict(state[k], self.config_dict) for k in state.keys()}
-                # norm_obs_list = list(norm_obs_dict.values())
-                # action = self.select_action(norm_obs_list)
-                action_dict = {k: self.select_action(state_k)}
+        for frame_idx in range(1, num_frames + 1):
+            # norm_obs_dict = {k:normStateDict(state[k], self.config_dict) for k in state.keys()}
+            # norm_obs_list = list(norm_obs_dict.values())
+            # action = self.select_action(norm_obs_list)
+            action_dict = {k: self.select_action(state[k]) for k in state.keys()}
+            
+            next_state, reward, done = self.step(state, action_dict, frame_idx)
+
+            # state_k = np.array(list(next_state.values()))
+            state = next_state
+            score = dictAdd(score, reward)
+            # score_k = score_k + reward
+            # NoisyNet: removed decrease of epsilon
+            
+            # PER: increase beta
+            fraction = min(frame_idx / num_frames, 1.0)
+            self.beta = self.beta + fraction * (1.0 - self.beta)
+
+            # if episode ends
+            if done:
+                state = self.env.reset()
+                state = {k:normStateDict(state[k], self.config_dict) for k in state.keys()}
+                scores.append(score)
+
+            # if training is ready
+            if len(self.memory) >= self.batch_size:
+                loss = self.update_model()
+                losses.append(loss)
+                update_cnt += 1
                 
-                next_state, reward, done = self.step(action_dict, frame_idx, k)
+                # if hard update is needed
+                if update_cnt % self.target_update == 0:
+                    self._target_hard_update()
 
-                # state_k = np.array(list(next_state.values()))
-                state_k = next_state
-                # score = dictAdd(score, reward)
-                score_k = score_k + reward
-                # NoisyNet: removed decrease of epsilon
-                
-                # PER: increase beta
-                fraction = min(frame_idx / num_frames, 1.0)
-                self.beta = self.beta + fraction * (1.0 - self.beta)
-
-                # if episode ends
-                if done:
-                    state = self.env.reset()
-                    state = {k:normStateDict(state[k], self.config_dict) for k in state.keys()}
-                    scores.append(score_k)
-                    score_k = 0
-
-                # if training is ready
-                if len(self.memory) >= self.batch_size:
-                    loss = self.update_model()
-                    losses.append(loss)
-                    update_cnt += 1
-                    
-                    # if hard update is needed
-                    if update_cnt % self.target_update == 0:
-                        self._target_hard_update()
-
-                # plotting
-                if frame_idx % plotting_interval == 0:
-                    self._plot(frame_idx, scores, losses)
+            # plotting
+            if frame_idx % plotting_interval == 0:
+                self._plot(frame_idx, scores, losses)
                     
         self.env.close()
-                
+
+
     def test(self, video_folder: str) -> None:
         """Test the agent."""
         self.is_test = True
