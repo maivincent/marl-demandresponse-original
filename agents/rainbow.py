@@ -482,7 +482,9 @@ class DQNAgent:
             losses_dict["loss_dqn"] = losses[-1]
             wandb.log(losses_dict)
         if len(rewards) > 0:
-            reward_dict = {}
-            reward_dict["reward"] = rewards[-1]
-            wandb.log(reward_dict)
+            rewards_dict = {}
+            for k in rewards[-1].keys():
+                rewards_dict["reward_" + str(k)] = rewards[-1][k]
+            wandb.log(rewards_dict)
+            wandb.log({"mean_reward": np.mean(rewards[-1])})
 
