@@ -17,7 +17,7 @@ from utils import (
 
 )
 from metrics import Metrics
-
+import wandb
 
 class DQNAgent:
     """DQN Agent interacting with environment.
@@ -129,7 +129,8 @@ class DQNAgent:
         ).to(self.device)
         self.dqn_target.load_state_dict(self.dqn.state_dict())
         self.dqn_target.eval()
-        
+        wandb.watch(self.dqn, log="all")
+        wandb.watch(self.dqn_target, log="all")
         # optimizer
         self.optimizer = optim.Adam(self.dqn.parameters(), lr=self.config_dict["DQN_prop"]["lr"])
 
@@ -301,6 +302,7 @@ class DQNAgent:
         update_cnt = 0
         losses = []
         scores = []
+        rewards = []
         score = {k:0 for k in state.keys()}
         state = {k:normStateDict(state[k], self.config_dict) for k in state.keys()}
         for frame_idx in range(1, num_frames + 1):
@@ -331,15 +333,20 @@ class DQNAgent:
             if len(self.memory) >= self.batch_size:
                 loss = self.update_model()
                 losses.append(loss)
+                rewards.append(reward)
                 update_cnt += 1
-                
+                self._wandb_logging(frame_idx, scores, losses, rewards)
+                    
+                # if hard update is needed
+                if update_cnt % self.target_update == 0:
+                    self._target_hard_update()
                 # if hard update is needed
                 if update_cnt % self.target_update == 0:
                     self._target_hard_update()
 
             # plotting
-            if frame_idx % plotting_interval == 0:
-                self._plot(frame_idx, scores, losses)
+            # if frame_idx % plotting_interval == 0:
+            #     self._plot(frame_idx, scores, losses)
                     
         self.env.close()
 
@@ -456,3 +463,26 @@ class DQNAgent:
         # plt.title('loss')
         # plt.plot(losses)
         # plt.show()
+
+    def _wandb_logging(
+        self, 
+        frame_idx: int, 
+        scores: List, 
+        losses: List,
+        rewards: List
+    ):  
+        wandb.log({"step": frame_idx})
+        if len(scores) > 0:
+            scores_dict = {}
+            for k in scores[-1].keys():
+                scores_dict["score_" + str(k)] = scores[-1][k]
+            wandb.log(scores_dict)
+        if len(losses) > 0:
+            losses_dict = {}
+            losses_dict["loss_dqn"] = losses[-1]
+            wandb.log(losses_dict)
+        if len(rewards) > 0:
+            reward_dict = {}
+            reward_dict["reward"] = rewards[-1]
+            wandb.log(reward_dict)
+
