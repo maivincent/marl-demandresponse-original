@@ -486,5 +486,5 @@ class DQNAgent:
             for k in rewards[-1].keys():
                 rewards_dict["reward_" + str(k)] = rewards[-1][k]
             wandb.log(rewards_dict)
-            wandb.log({"mean_reward": np.mean(rewards[-1])})
+            wandb.log({"mean_reward": np.mean(list(rewards[-1].values()))})
 
