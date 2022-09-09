@@ -56,6 +56,6 @@ if __name__ == "__main__":
             opt.exp, opt.nb_agents, opt.env_seed, opt.net_seed),
     )
     env = MADemandResponseEnv(config_dict)
-    agent = DQNAgent(env, memory_size, batch_size, target_update, config_dict)
+    agent = DQNAgent(env, memory_size, config_dict['DQN_prop']["batch_size"], target_update, config_dict)
     agent.train(num_frames)
     wandb.finish()
