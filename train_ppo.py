@@ -87,7 +87,7 @@ def train_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run):
                 k
             )
             # Update metrics
-            metrics.update(k, obs_dict, next_obs_dict, rewards_dict, env)
+            metrics.update(k, next_obs_dict, rewards_dict, env)
 
         # Set next state as current state
         obs_dict = next_obs_dict

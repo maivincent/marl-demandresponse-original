@@ -386,8 +386,83 @@ def cli_train():
     parser.add_argument(
         "--buffer_capacity", type=int, default=-1, help="Replay buffer capacity"
     )
+        
+    parser.add_argument(
+        "--lr",
+        type=float,
+        default=-1,
+        help="Learning rate (for DQN and TarMAC)"
+    )
 
-    parser.add_argument("--DQN_lr", type=float, default=-1, help="Learning rate")
+## TarMAC agent (only those which were not already added in PPO or DQN agent)
+    parser.add_argument(
+        "--recurrent_policy",
+        choices = ['True','False'],
+        default = 'True',
+        help="Whether to use a recurrent policy"
+    )
+
+    parser.add_argument(
+        "--state_size",
+        type=int,
+        default=-1,
+        help="Size of the internal state vector"
+    )
+
+    parser.add_argument(
+        "--communication_size",
+        type=int,
+        default=-1,
+        help="Size of the communication vector"
+    )
+
+    parser.add_argument(
+        "--tarmac_communication_mode",
+        type=str,
+        default="config",
+        help="Communication mode for tarmac (can be: 'no_comm', 'from_states_rec_att', 'from_states')"
+    )
+
+    parser.add_argument(
+        "--comm_num_hops",  
+        type=int,
+        default=-1,
+        help="Number of hops (rounds) for the communication"    
+    )
+
+    parser.add_argument(
+        "--value_loss_coef",
+        type=float,
+        default=-1,
+        help="Value loss coefficient"
+    )
+
+    parser.add_argument(
+        "--entropy_coef",
+        type=float,
+        default=-1,
+        help="Entropy coefficient"
+    )
+
+
+
+    parser.add_argument(
+        "--eps",
+        type=float,
+        default=-1,
+        help="Epsilon for TarMAC optimizer (RMSProp or Adam)"
+    )
+
+
+    parser.add_argument(
+        "--alpha",
+        type=float,
+        default=-1,
+        help="Alpha for TarMAC optimizer (RMSProp or Adam)"
+    )
+
+ 
+### Training parameters
 
     ### Training parameters
 
@@ -654,6 +729,7 @@ def cli_deploy(agents_dict):
         default="config",
         help="Decide if start date time is 'fixed' or uniformly 'random'.",
     )
+
 
     parser.add_argument(
         "--artificial_signal_ratio",

@@ -71,7 +71,7 @@ def train_dqn(env, agent, opt, config_dict, render, log_wandb, wandb_run):
         for k in obs_dict.keys():
             agent.store_transition(normStateDict(obs_dict[k], config_dict), action[k], rewards_dict[k], normStateDict(next_obs_dict[k], config_dict))
             # Update metrics
-            metrics.update(k, obs_dict, next_obs_dict, rewards_dict, env)
+            metrics.update(k, next_obs_dict, rewards_dict, env)
         
         # Set next_state as current state
         obs_dict = next_obs_dict

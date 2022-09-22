@@ -76,46 +76,16 @@ config_dict = {
             },
         },
     },
-    "noise_house_prop_test": {
-        "noise_mode": "small_noise",  # Can be: no_noise, small_noise, big_noise, small_start_temp, big_start_temp
-        "noise_parameters": {
-            "no_noise": {
-                "std_start_temp": 0,  # Std noise on starting temperature
-                "std_target_temp": 0,  # Std Noise on target temperature
-                "factor_thermo_low": 1,  # Lowest random factor for Ua, Cm, Ca, Hm
-                "factor_thermo_high": 1,  # Highest random factor for Ua, Cm, Ca, Hm
-            },
-            "dwarf_noise": {
-                "std_start_temp": 0.05,  # Std noise on starting temperature
-                "std_target_temp": 0.05,  # Std Noise on target temperature
-                "factor_thermo_low": 1,  # Lowest random factor for Ua, Cm, Ca, Hm
-                "factor_thermo_high": 1,  # Highest random factor for Ua, Cm, Ca, Hm
-            },
-            "small_noise": {
-                "std_start_temp": 3,  # Std noise on starting temperature
-                "std_target_temp": 1,  # Std Noise on target temperature
-                "factor_thermo_low": 0.9,  # Lowest random factor for Ua, Cm, Ca, Hm
-                "factor_thermo_high": 1.1,  # Highest random factor for Ua, Cm, Ca, Hm
-            },
-            "big_noise": {
-                "std_start_temp": 5,  # Std noise on starting temperature
-                "std_target_temp": 2,  # Std Noise on target temperature
-                "factor_thermo_low": 0.8,  # Lowest random factor for Ua, Cm, Ca, Hm
-                "factor_thermo_high": 1.2,  # Highest random factor for Ua, Cm, Ca, Hm
-            },
-            "small_start_temp": {
-                "std_start_temp": 3,  # Std noise on starting temperature
-                "std_target_temp": 0,  # Std Noise on target temperature
-                "factor_thermo_low": 1,  # Lowest random factor for Ua, Cm, Ca, Hm
-                "factor_thermo_high": 1,  # Highest random factor for Ua, Cm, Ca, Hm
-            },
-            "big_start_temp": {
-                "std_start_temp": 5,  # Std noise on starting temperature
-                "std_target_temp": 0,  # Std Noise on target temperature
-                "factor_thermo_low": 1,  # Lowest random factor for Ua, Cm, Ca, Hm
-                "factor_thermo_high": 1,  # Highest random factor for Ua, Cm, Ca, Hm
-            },
-        },
+
+"DQN_prop": {
+    "network_layers": [100, 100],
+    "gamma": 0.99,
+    "tau": 0.01,
+    "buffer_capacity": 524288,
+    "lr": 1e-3,
+    "batch_size": 256,
+    "epsilon_decay": 0.99998,
+    "min_epsilon": 0.01,
     },
     # HVAC properties
     "default_hvac_prop": {
@@ -414,6 +384,24 @@ config_dict = {
         "gumbel_softmax_tau": 1,
         "DDPG_shared": True
     },
+    
+    "TarMAC_prop": {
+	    "recurrent_policy": True, 	# Use RNN
+	    "state_size": 128, 			# Size of the RNN state
+	    "communication_size": 32, 	# Size of the communication message
+	    "tarmac_communication_mode": "from_states_rec_att",			# Mode of communication protocole (not the same as communication_mode of the cluster)
+	    "comm_num_hops": 1,			# Number of hops during the communication
+	    "value_loss_coef": 0.5,	# Coefficient of the value loss in the loss function
+	    "entropy_coef": 0.01,		# Coefficient of the entropy loss in the loss function
+	    "tarmac_lr": 7e-4,					# Learning rate
+	    "tarmac_eps": 1e-5,				# Epsilon for RMSProp or Adam optimizer
+	    "tarmac_gamma": 0.99,				# Discount factor
+	    "tarmac_alpha": 0.99,				# Alpha for RMSProp optimizer
+	    "tarmac_max_grad_norm": 0.5,		# Maximal norm of the gradient. If None, no clipping is done.
+	    "distributed": False,
+	    "nb_tarmac_updates": 10,
+	    "tarmac_batch_size": 128,
+	},
     "DQN_prop": {
         "network_layers": [100, 100],
         "gamma": 0.99,

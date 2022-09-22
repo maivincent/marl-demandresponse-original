@@ -4,10 +4,12 @@ from agents.dqn import DQN
 from agents.ppo import PPO
 from agents.mappo import MAPPO
 from agents.ddpg import MADDPG
+from agents.tarmac.a2c_acktr import A2C_ACKTR as TARMAC
 from train_dqn import train_dqn
 from train_ppo import train_ppo
 from train_mappo import train_mappo
 from train_ddpg import train_ddpg
+from train_tarmac import train_tarmac
 from config import config_dict
 from cli import cli_train
 from env.MA_DemandResponse import MADemandResponseEnv
@@ -29,7 +31,7 @@ def main():
     obs_dict = env.reset()
 
     # Select agent
-    agents = {"ppo": PPO, "mappo": MAPPO, "dqn": DQN, "maddpg": MADDPG}
+    agents = {"ppo": PPO, "mappo": MAPPO, "dqn": DQN, "tarmac": TARMAC, "maddpg": MADDPG}
 
     num_state = len(normStateDict(obs_dict[next(iter(obs_dict))], config_dict))
     print("Number of states: {}".format(num_state))
@@ -38,7 +40,7 @@ def main():
     agent = agents[opt.agent_type](config_dict, opt, num_state=num_state, wandb_run = wandb_run) # num_state, num_action
     
     # Start training
-    train = {"ppo": train_ppo, "mappo": train_mappo, "dqn": train_dqn, "maddpg": train_ddpg}
+    train = {"ppo": train_ppo, "mappo": train_mappo, "dqn": train_dqn, "tarmac": train_tarmac, "maddpg": train_ddpg}
     train[opt.agent_type](env, agent, opt, config_dict, render, log_wandb, wandb_run)
 
 #%%
