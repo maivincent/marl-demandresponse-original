@@ -59,6 +59,12 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
     rollouts = MultiAgentRolloutStorage(n_agents=nb_agents,obs_shape=obs_shape, num_steps=time_steps_per_epoch, num_processes=1, state_size=state_size, communication_size=communication_size)
     rollouts.observations[0].copy_(obs_torch)
 
+    # Initialize comms and hidden states
+    initial_comms = torch.zeros(1, nb_agents, communication_size)
+    initial_hiddens = torch.zeros(1, nb_agents, state_size)
+
+    rollouts.communications[0].copy_(initial_comms)
+    rollouts.states[0].copy_(initial_hiddens)
 
     print("Training Tarmac")
 
@@ -111,10 +117,12 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
             obs_torch = obs_dict2obs_torch(obs_shape, obs_dict, config_dict)
             rollouts.reset()
             rollouts.observations[0].copy_(obs_torch)
+            rollouts.communications[0].copy_(initial_comms)
+            rollouts.states[0].copy_(initial_hiddens)
 
         if t % time_steps_test_log == time_steps_test_log - 1:        # Test policy
             print(f"Testing at time {t}")
-            metrics_test = test_tarmac_agent(agent.actor_critic, env, config_dict, opt, t, rollouts.observations[0], rollouts.states[0], rollouts.communications[0], rollouts.masks[0])
+            metrics_test = test_tarmac_agent(agent.actor_critic, env, config_dict, opt, t, initial_hiddens, initial_comms, rollouts.masks[0])
             if log_wandb:
                 wandb_run.log(metrics_test)
             else:
