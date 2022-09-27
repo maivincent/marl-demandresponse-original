@@ -278,6 +278,12 @@ def adjust_config_train(opt, config_dict):
         if opt.alpha != -1:
             print("Setting TarMAC alpha to {}".format(opt.alpha))
             config_dict["TarMAC_prop"]["tarmac_alpha"] = opt.alpha
+        if opt.nb_tarmac_updates != -1:
+            print("Setting TarMAC nb_tarmac_updates to {}".format(opt.nb_tarmac_updates))
+            config_dict["TarMAC_prop"]["nb_tarmac_updates"] = opt.nb_tarmac_updates
+        if opt.batch_size != -1:
+            print("Setting TarMAC batch_size to {}".format(opt.batch_size))
+            config_dict["TarMAC_prop"]["tarmac_batch_size"] = opt.batch_size
 
         
 def adjust_config_deploy(opt, config_dict):

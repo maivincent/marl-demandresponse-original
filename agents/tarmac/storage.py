@@ -78,23 +78,10 @@ class MultiAgentRolloutStorage(object):
 
         self.step = 0
 
-    def compute_returns(self, next_value, use_gae, gamma, tau):     # use_gae=True is broken for some reason. May want to investigate later.
-        if use_gae:
-            next_value_agents = next_value.unsqueeze(1).expand(
-                self.returns.size(1), self.returns.size(2), 1)
-            self.value_preds[-1] = next_value_agents
-            gae = 0
-            for step in reversed(range(self.rewards.size(0))):
-                delta = self.rewards[step] + gamma * self.value_preds[step +
-                                                                      1] * self.masks[step
-                                                                                      +
-                                                                                      1] - self.value_preds[step]
-                gae = delta + gamma * tau * self.masks[step + 1] * gae
-                self.returns[step] = gae + self.value_preds[step]
-        else:
-            next_value_agents = next_value.unsqueeze(1).expand(
-                self.returns.size(1), self.returns.size(2), 1)
-            self.returns[-1] = next_value_agents
-            for step in reversed(range(self.rewards.size(0))):
-                self.returns[step] = self.returns[step + 1] * \
-                    gamma * self.masks[step + 1] + self.rewards[step]
+    def compute_returns(self, next_value, gamma):     
+        next_value_agents = next_value.unsqueeze(1).expand(
+            self.returns.size(1), self.returns.size(2), 1)
+        self.returns[-1] = next_value_agents
+        for step in reversed(range(self.rewards.size(0))):
+            self.returns[step] = self.returns[step + 1] * \
+                gamma * self.masks[step + 1] + self.rewards[step]

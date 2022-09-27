@@ -36,80 +36,9 @@ class A2C_ACKTR(object):
             state_size=self.state_size, comm_size=self.communication_size, comm_mode=self.communication_mode, comm_num_hops=1, use_cnn=False, env='MA_DemandResponse')
         
 
-        self.optimizer = self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=self.lr)
-        #optim.RMSprop(filter(lambda p: p.requires_grad, actor_critic.parameters()), lr=self.lr, eps=self.eps, alpha=self.alpha)
+        self.optimizer = optim.Adam(self.actor_critic.parameters(), lr=self.lr)
+        #self.optimizer = optim.RMSprop(filter(lambda p: p.requires_grad, self.actor_critic.parameters()), lr=self.lr, eps=self.eps, alpha=self.alpha)
 
- #   def __init__(self,
- #                actor_critic,
- #                value_loss_coef,
- #                entropy_coef,
- #                lr=None,
- #                eps=None,
- #                alpha=None,
- #                max_grad_norm=None,
- #                distributed=False):
- #       #
-
- #       self.actor_critic = actor_critic
-
- #       self.value_loss_coef = value_loss_coef
- #       self.entropy_coef = entropy_coef
-
-#        self.max_grad_norm = max_grad_norm
-
- #       self.optimizer = optim.Adam(actor_critic.parameters(), lr=lr)#, eps=eps)
-        #optim.RMSprop(
-            #filter(lambda p: p.requires_grad, actor_critic.parameters()), lr, eps=eps, alpha=alpha)
-
-  #      self.distributed = distributed
-
-    def update(self, rollouts):
-        obs_shape = rollouts.observations.size()[2:]
-        action_shape = rollouts.actions.size()[-1]
-        num_steps, num_processes, _ = rollouts.rewards.size()
-
-        values, action_log_probs, dist_entropy, states = self.actor_critic.evaluate_actions(
-            rollouts.observations[:-1].view(-1, *obs_shape),
-            rollouts.states[0].view(-1, self.actor_critic.state_size),
-            rollouts.masks[:-1].view(-1, 1),
-            rollouts.actions.view(-1, action_shape))
-
-        values = values.view(num_steps, num_processes, 1)
-        action_log_probs = action_log_probs.view(num_steps, num_processes, 1)
-
-        advantages = rollouts.returns[:-1] - values
-        value_loss = advantages.pow(2).mean()
-
-        action_loss = -(advantages.detach() * action_log_probs).mean()
-
-        if self.acktr and self.optimizer.steps % self.optimizer.Ts == 0:
-            # Sampled fisher, see Martens 2014
-            self.actor_critic.zero_grad()
-            pg_fisher_loss = -action_log_probs.mean()
-
-            value_noise = torch.randn(values.size())
-            if values.is_cuda:
-                value_noise = value_noise.cuda()
-
-            sample_values = values + value_noise
-            vf_fisher_loss = -(values - sample_values.detach()).pow(2).mean()
-
-            fisher_loss = pg_fisher_loss + vf_fisher_loss
-            self.optimizer.acc_stats = True
-            fisher_loss.backward(retain_graph=True)
-            self.optimizer.acc_stats = False
-
-        self.optimizer.zero_grad()
-        (value_loss * self.value_loss_coef + action_loss -
-         dist_entropy * self.entropy_coef).backward()
-
-        if self.acktr == False:
-            nn.utils.clip_grad_norm_(self.actor_critic.parameters(),
-                                     self.max_grad_norm)
-
-        self.optimizer.step()
-
-        return value_loss.item(), action_loss.item(), dist_entropy.item()
 
     def update_multi_agent(self, rollouts, t):
         n_agents, obs_shape = rollouts.observations.size(
@@ -121,6 +50,10 @@ class A2C_ACKTR(object):
         value_losses = []
         action_losses = []
         dist_entropies = []
+
+        values_list = []
+        returns_list = []
+        advantages_list = []
 
 
         for i in range(self.nb_tarmac_updates):
@@ -147,6 +80,10 @@ class A2C_ACKTR(object):
 
                 value_loss = advantages.pow(2).mean()
 
+                mean_returns = rollouts.returns[index].mean()
+                mean_advantages = advantages.mean()
+                mean_value = values.mean()
+
                 # copy over advantage for all actions
                 # for the case where there's single
                 # team reward instead of individual rewards
@@ -163,25 +100,10 @@ class A2C_ACKTR(object):
                 value_losses.append(value_loss.item())
                 action_losses.append(action_loss.item())
                 dist_entropies.append(dist_entropy.item())
-
-
-                if self.distributed == True:
-                    self.average_gradients()
+                returns_list.append(mean_returns.item())
+                advantages_list.append(mean_advantages.item())
+                values_list.append(mean_value.item())
 
                 self.optimizer.step()
 
-        return np.mean(value_losses), np.mean(action_losses), np.mean(grad_norms), np.mean(dist_entropies)
-
-    def average_gradients(self):
-        world_size = torch.distributed.get_world_size()
-
-        for p in self.actor_critic.parameters():
-            group = torch.distributed.new_group(ranks=list(range(world_size)))
-
-            tensor = p.grad.data.cpu()
-
-            torch.distributed.all_reduce(
-                tensor, op=torch.distributed.reduce_op.SUM, group=group)
-
-            tensor /= float(world_size)
-            p.grad.data = tensor.cuda()
+        return np.mean(value_losses), np.mean(action_losses), np.mean(grad_norms), np.mean(dist_entropies), np.mean(returns_list), np.mean(advantages_list), np.mean(values_list)

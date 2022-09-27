@@ -461,6 +461,14 @@ def cli_train():
         help="Alpha for TarMAC optimizer (RMSProp or Adam)"
     )
 
+    parser.add_argument(
+        "--nb_tarmac_updates",
+        type=int,
+        default=-1,
+        help="Number of updates for TarMAC"
+    )
+
+
  
 ### Training parameters
 

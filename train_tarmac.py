@@ -31,6 +31,7 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
 
     state_size = config_dict["TarMAC_prop"]["state_size"]
     communication_size = config_dict["TarMAC_prop"]["communication_size"]
+    gamma = config_dict["TarMAC_prop"]["tarmac_gamma"]
 
     actor_critic = agent.actor_critic
 
@@ -100,8 +101,8 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
                 next_value = actor_critic.get_value(
                     rollouts.observations[-1], rollouts.states[-1],
                     rollouts.communications[-1], rollouts.masks[-1]).detach()
-            rollouts.compute_returns(next_value, use_gae=False, gamma=0.99, tau=0.95) #TODO: change default values with config_dict
-            value_loss, action_loss, grad_norm, dist_entropy = agent.update_multi_agent(rollouts, t)
+            rollouts.compute_returns(next_value, gamma) 
+            value_loss, action_loss, grad_norm, dist_entropy, returns, advantages, values = agent.update_multi_agent(rollouts, t)
 
             # Logging
             if log_wandb:
@@ -110,6 +111,9 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
                     "Mean action loss": action_loss,
                     "Mean grad norm": grad_norm,
                     "Mean distribution entropy": dist_entropy,
+                    "Mean returns in update": returns.mean(),
+                    "Mean advantages in update": advantages.mean(),
+                    "Mean values in update": values.mean(),
                     "Training steps": t
                 })
 
