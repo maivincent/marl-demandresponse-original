@@ -56,7 +56,7 @@ class CommAttention(nn.Module):
         self.num_hops = num_hops
 
         self.msg2nextstate = nn.Sequential(
-            nn.Linear(state_size + comm_size, state_size), nn.Tanh())
+            nn.Linear(state_size + comm_size, state_size), nn.ReLU())
 
         self.state2query = nn.Linear(state_size, key_size)
         self.state2key = nn.Linear(state_size, key_size)
@@ -212,14 +212,14 @@ class MultiAgentBase(nn.Module):
         self.env = env
 
         self.common = nn.Sequential(
-            nn.Linear(obs_size + comm_size, state_size), nn.Tanh())
+            nn.Linear(obs_size + comm_size, state_size), nn.ReLU(), nn.Linear(state_size, state_size))
 
         if use_gru:
             self.gru = nn.GRUCell(state_size, state_size)
 
         self.critic = nn.Sequential(
             nn.Linear(state_size, state_size),
-            MeanAll(dim=1, keepdim=False), nn.Tanh(), nn.Linear(state_size, 1))
+            MeanAll(dim=1, keepdim=False), nn.ReLU(), nn.Linear(state_size, 1))
 
         self.comm = CommAttention(
             state_size=state_size,
