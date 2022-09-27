@@ -247,40 +247,19 @@ class MultiAgentBase(nn.Module):
         num_processes = states.size(0)
 
         # forward() called through act()
-        if obs_dim0 == num_processes:
 
-            inputs = torch.cat((obs, communications * masks), dim=2)
 
-            x = self.common(inputs)
+        inputs = torch.cat((obs, communications), dim=2)
 
-            if hasattr(self, 'gru'):
-                x = x.view(-1, self.state_size)
-                states = states.view(-1, self.state_size)
-                x = states = self.gru(x, states * masks.view(-1, 1)).view(
-                    num_processes, n_agents, self.state_size)
+        x = self.common(inputs)
 
-            communications, aux = self.communicate(obs, x)
+        if hasattr(self, 'gru'):
+            x = x.view(-1, self.state_size)
+            states = states.view(-1, self.state_size)
+            x = states = self.gru(x, states * masks.view(-1, 1)).view(
+                num_processes, n_agents, self.state_size)
 
-        # forward() called through evaluate_actions()
-        else:
-            obs = obs.view(-1, num_processes, n_agents, obs_size)
-            masks = masks.view(-1, num_processes, n_agents, 1)
-
-            outputs = []
-            for i in range(obs.size(0)):
-
-                inputs = torch.cat((obs[i], communications * masks[i]), dim=2)
-                x = self.common(inputs)
-                if hasattr(self, 'gru'):
-                    x = x.view(-1, self.state_size)
-                    states = states.view(-1, self.state_size)
-                    x = states = self.gru(
-                        x, states * masks[i].view(-1, 1)).view(
-                            num_processes, n_agents, self.state_size)
-                outputs.append(x)
-                communications, aux = self.communicate(obs[i], x)
-
-            x = torch.cat(outputs, 0)
+        communications, aux = self.communicate(obs, x)
 
         value = self.critic(x)
 

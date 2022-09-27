@@ -60,8 +60,8 @@ class A2C_ACKTR(object):
             for index in BatchSampler(SubsetRandomSampler(range(num_steps)), self.batch_size, False):
                 values, action_log_probs, dist_entropy, states = self.actor_critic.evaluate_actions(
                     rollouts.observations[index].view(-1, n_agents, *obs_shape), 
-                    rollouts.states[0].view(-1, n_agents, self.actor_critic.state_size),
-                    rollouts.communications[0].view(-1, n_agents, self.actor_critic.comm_size),
+                    rollouts.states[index].view(-1, n_agents, self.actor_critic.state_size),            # Why is it 0?
+                    rollouts.communications[index].view(-1, n_agents, self.actor_critic.comm_size),     # Why is it 0?
                     rollouts.masks[index].view(-1, 1),
                     rollouts.actions[index].view(-1, n_agents, action_shape))
 
