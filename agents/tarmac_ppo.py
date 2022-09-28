@@ -8,28 +8,25 @@ import os
 from time import perf_counter
 import wandb 
 import numpy as np 
-from agents.network import Actor, Critic
+from agents.network import TarMAC_Actor, TarMAC_Critic
 import pprint
  
-class PPO: 
+class TarMAC_PPO: 
     def __init__(self, config_dict, opt, num_state=22, num_action=2, wandb_run=None): 
-        super(PPO, self).__init__() 
+        super(TarMAC_PPO, self).__init__() 
         self.seed = opt.net_seed 
         torch.manual_seed(self.seed) 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
+        self.hidden_state_size = config_dict["TarMAC_PPO_prop"]['hidden_state_size']
 
  
         # if True: 
         #    self.actor_net = OldActor(num_state=num_state, num_action=num_action) 
         #    self.critic_net = OldCritic(num_state=num_state) 
-        self.actor_net = Actor( 
-            num_state=num_state, 
-            num_action=num_action, 
-            layers=config_dict["PPO_prop"]["actor_layers"], 
-        ).to(self.device) 
-        self.critic_net = Critic( 
-            num_state=num_state, layers=config_dict["PPO_prop"]["critic_layers"] 
-        ).to(self.device)
+        self.actor_net = TarMAC_Actor(num_obs=num_state, num_comm=0, hidden_state_size=self.hidden_state_size, num_action=num_action, with_gru=True).to(self.device) 
+        self.critic_net = TarMAC_Critic(num_obs=num_state, num_comm=0, num_actor_hidden=self.hidden_state_size, hidden_state_size=self.hidden_state_size).to(self.device)
+        
         self.nb_agents = config_dict["default_env_prop"]["cluster_prop"]["nb_agents"]
         self.batch_size = config_dict["PPO_prop"]["batch_size"] 
         self.ppo_update_time = config_dict["PPO_prop"]["ppo_update_time"] 
@@ -46,7 +43,10 @@ class PPO:
         self.buffer = {}
         for agent in range(self.nb_agents):
             self.buffer[agent] = []
- 
+
+        # Initialize hidden states
+        self.actor_hidden_state = torch.zeros(1, self.hidden_state_size).to(self.device)
+
         print( 
             "ppo_update_time: {}, max_grad_norm: {}, clip_param: {}, gamma: {}, batch_size: {}, lr_actor: {}, lr_critic: {}".format( 
                 self.ppo_update_time, 
@@ -67,18 +67,22 @@ class PPO:
  
     def select_action(self, state): 
         state = torch.from_numpy(state).float().unsqueeze(0).to(self.device) 
+
+        comm = torch.zeros(1, 0).to(self.device)         # Deal with communications later
+
         with torch.no_grad(): 
-            action_prob = self.actor_net(state) 
-        # print(action_prob) 
+            action_prob, self.actor_hidden_state = self.actor_net(state, comm, self.actor_hidden_state) 
         c = Categorical(action_prob.cpu()) 
         action = c.sample() 
-        return action.item(), action_prob[:, action.item()].item() 
+        return action.item(), action_prob[:, action.item()].item(), self.actor_hidden_state
  
     def get_value(self, state): 
-        #state = torch.from_numpy(state) 
+        state = state.view(1, -1)
         state = state.to(self.device) 
+        comm = torch.zeros(1, 0).to(self.device)         # Deal with communications later
+
         with torch.no_grad(): 
-            value = self.critic_net(state) 
+            value = self.critic_net(state, comm, self.actor_hidden_state) 
         return value.cpu().item() 
 
     def reset_buffer(self):
@@ -89,7 +93,7 @@ class PPO:
     def store_transition(self, transition, agent): 
         self.buffer[agent].append(transition) 
  
-    def update(self, t): 
+    def update(self, time_step): 
         sequential_buffer =  []
         for agent in range(self.nb_agents):
             sequential_buffer += self.buffer[agent]
@@ -98,12 +102,24 @@ class PPO:
         next_state_np = np.array([t.next_state for t in sequential_buffer])
         action_np = np.array([t.action for t in sequential_buffer])
         old_action_log_prob_np = np.array([t.a_log_prob for t in sequential_buffer])
+        #comm = np.array([t.comm for t in sequential_buffer])
+        #actor_hidden = np.array([t.actor_hidden for t in sequential_buffer])
         
         state = torch.tensor(state_np, dtype=torch.float).to(self.device) 
         next_state = torch.tensor(next_state_np, dtype=torch.float).to(self.device) 
         action = torch.tensor(action_np, dtype=torch.long).view(-1, 1).to(self.device) 
         reward = [t.reward for t in sequential_buffer] 
         old_action_log_prob = torch.tensor(old_action_log_prob_np, dtype=torch.float).view(-1, 1).to(self.device) 
+
+        actor_hidden = torch.zeros(self.hidden_state_size).view(1,-1).to(self.device)
+        comm = torch.zeros(1, 0).to(self.device)         # Deal with communications later
+        for t in sequential_buffer:
+            actor_hidden = torch.cat((actor_hidden, t.actor_hidden), dim=0)
+            comm = torch.cat((comm, t.comm), dim=0)
+        actor_hidden = actor_hidden[1:]
+        comm = comm[1:]
+
+        #actor_hidden = torch.tensor(actor_hidden).to(self.device)
         done = [t.done for t in sequential_buffer] 
 
         """
@@ -141,16 +157,16 @@ class PPO:
                 SubsetRandomSampler(range(len(sequential_buffer))), self.batch_size, False 
             ): 
                 if self.training_step % 1000 == 0: 
-                    print("Time step: {} ，train {} times".format(t, self.training_step)) 
+                    print("Time step: {} ，train {} times".format(time_step, self.training_step)) 
                 # with torch.no_grad(): 
                 Gt_index = Gt[index].view(-1, 1) 
  
-                V = self.critic_net(state[index]) 
+                V = self.critic_net(state[index], comm[index], actor_hidden[index])
                 delta = Gt_index - V 
                 advantage = delta.detach() 
  
                 # epoch iteration, PPO core 
-                action_prob = self.actor_net(state[index]).gather( 
+                action_prob = self.actor_net(state[index], comm[index], actor_hidden[index])[0].gather( 
                     1, action[index] 
                 )  # new policy 
                 ratio = action_prob / old_action_log_prob[index] 

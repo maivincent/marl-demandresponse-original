@@ -52,32 +52,6 @@ class Critic(nn.Module):
         return value
 
 
-class OldActor(nn.Module):
-    def __init__(self, num_state, num_action):
-        super(OldActor, self).__init__()
-        self.fc1 = nn.Linear(num_state, 100)
-        self.action_head = nn.Linear(100, num_action)
-        print(self)
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        x = self.action_head(x)
-        action_prob = F.softmax(x, dim=1)
-        return action_prob
-
-
-class OldCritic(nn.Module):
-    def __init__(self, num_state):
-        super(OldCritic, self).__init__()
-        self.fc1 = nn.Linear(num_state, 100)
-        self.state_value = nn.Linear(100, 1)
-
-    def forward(self, x):
-        x = F.relu(self.fc1(x))
-        value = self.state_value(x)
-        return value
-
-
 class DQN_network(nn.Module):
     def __init__(self, num_state, num_action, layers):
         super(DQN_network, self).__init__()
@@ -123,3 +97,40 @@ class DDPG_Network(nn.Module):
         return self.net(x)
 
 
+
+
+class TarMAC_Actor(nn.Module):
+    def __init__(self, num_obs, num_comm, hidden_state_size, num_action, with_gru=False):
+        super(TarMAC_Actor, self).__init__()
+        self.with_gru = with_gru
+        self.fc1 = nn.Linear(num_obs + num_comm, hidden_state_size)
+        self.fc2 = nn.Linear(hidden_state_size, hidden_state_size)
+        if self.with_gru:
+            self.gru = nn.GRUCell(hidden_state_size, hidden_state_size)
+        self.fc3 = nn.Linear(hidden_state_size, num_action)
+
+    def forward(self, obs, comm, hidden_state = None):
+        x = torch.cat([obs, comm], dim=1)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        if self.with_gru:
+            hidden_state = self.gru(x, hidden_state)
+            x = hidden_state
+        x = self.fc3(x)
+        action_prob = F.softmax(x, dim=1)
+        return action_prob, hidden_state
+
+class TarMAC_Critic(nn.Module):
+    def __init__(self, num_obs, num_comm, num_actor_hidden, hidden_state_size):
+        super(TarMAC_Critic, self).__init__()
+        self.fc1 = nn.Linear(num_obs + num_comm + num_actor_hidden, hidden_state_size)
+        self.fc2 = nn.Linear(hidden_state_size, hidden_state_size)
+        self.fc3 = nn.Linear(hidden_state_size, 1)
+
+
+    def forward(self, obs, comm, actor_hidden_state):
+        x = torch.cat([obs, comm, actor_hidden_state], dim=1)
+        x = F.relu(self.fc1(x))
+        x = F.relu(self.fc2(x))
+        value = self.fc3(x)
+        return value

@@ -433,6 +433,11 @@ config_dict = {
 	    "nb_tarmac_updates": 10,
 	    "tarmac_batch_size": 128,
 	},
+
+    "TarMAC_PPO_prop": {
+        "hidden_state_size": 128,   # Size of the hidden state of the RNN
+    },
+    
     "DQN_prop": {
         "network_layers": [100, 100],
         "gamma": 0.99,

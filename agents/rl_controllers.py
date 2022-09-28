@@ -4,7 +4,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.distributions import Categorical
 import os
-from agents.network import Actor, OldActor, DQN_network, DDPG_Network
+from agents.network import Actor, DQN_network, DDPG_Network
 import sys
 sys.path.append("..")
 
