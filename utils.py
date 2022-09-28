@@ -285,7 +285,60 @@ def adjust_config_train(opt, config_dict):
             print("Setting TarMAC batch_size to {}".format(opt.batch_size))
             config_dict["TarMAC_prop"]["tarmac_batch_size"] = opt.batch_size
 
+    elif agent == "tarmac_ppo":
+        print("-- TarMAC PPO agent --")
+    ## TarMAC PPO agent
+        if opt.actor_hidden_state_size != -1:
+            print("Setting TarMAC actor_hidden_state_size to {}".format(opt.actor_hidden_state_size))
+            config_dict["TarMAC_PPO_prop"]["actor_hidden_state_size"] = opt.actor_hidden_state_size
+        if opt.communication_size != -1:
+            print("Setting TarMAC communication_size to {}".format(opt.communication_size))
+            config_dict["TarMAC_PPO_prop"]["communication_size"] = opt.communication_size
+        if opt.comm_num_hops != -1:
+            print("Setting TarMAC comm_num_hops to {}".format(opt.comm_num_hops))
+            config_dict["TarMAC_PPO_prop"]["comm_num_hops"] = opt.comm_num_hops
+        if opt.lr_critic != -1:
+            print("Setting TarMAC lr_critic to {}".format(opt.lr_critic))
+            config_dict["TarMAC_PPO_prop"]["lr_critic"] = opt.lr_critic
+        if opt.lr_actor != -1:
+            print("Setting TarMAC lr_actor to {}".format(opt.lr_actor))
+            config_dict["TarMAC_PPO_prop"]["lr_actor"] = opt.lr_actor
+        if opt.lr_both != -1:
+            print("Setting PPO lr_both to {}".format(opt.lr_both))
+            config_dict["TarMAC_PPO_prop"]["lr_critic"] = opt.lr_both
+            config_dict["PPO_pTarMAC_PPO_proprop"]["lr_actor"] = opt.lr_both
+            if opt.lr_actor != -1 or opt.lr_critic != -1:
+                raise ValueError("Potential conflict: both lr_both and lr_actor or lr_critic were set in the CLI")
+        if opt.eps != -1:
+            print("Setting TarMAC eps to {}".format(opt.eps))
+            config_dict["TarMAC_PPO_prop"]["eps"] = opt.eps
+        if opt.gamma != -1:
+            print("Setting TarMAC gamma to {}".format(opt.gamma))
+            config_dict["TarMAC_PPO_prop"]["gamma"] = opt.gamma
+        if opt.max_grad_norm != -1:
+            print("Setting TarMAC max_grad_norm to {}".format(opt.max_grad_norm))
+            config_dict["TarMAC_PPO_prop"]["max_grad_norm"] = opt.max_grad_norm
+        if opt.clip_param != -1:
+            print("Setting TarMAC clip_param to {}".format(opt.clip_param))
+            config_dict["TarMAC_PPO_prop"]["clip_param"] = opt.clip_param
+        if opt.ppo_update_time != -1:
+            print("Setting TarMAC ppo_update_time to {}".format(opt.ppo_update_time))
+            config_dict["TarMAC_PPO_prop"]["ppo_update_time"] = opt.ppo_update_time
+        if opt.batch_size != -1:
+            print("Setting TarMAC batch_size to {}".format(opt.batch_size))
+            config_dict["TarMAC_PPO_prop"]["batch_size"] = opt.batch_size
+        if opt.hidden_layer_size != -1:
+            print("Setting TarMAC hidden_layer_size to {}".format(opt.hidden_layer_size))
+            config_dict["TarMAC_PPO_prop"]["hidden_layer_size"] = opt.hidden_layer_size
+        if opt.with_gru != 'config':
+            print("Setting TarMAC with_gru to {}".format(opt.with_gru))
+            if opt.with_gru == "True":
+                config_dict["TarMAC_PPO_prop"]["with_gru"] = True
+            else:
+                config_dict["TarMAC_PPO_prop"]["with_gru"] = False
         
+
+
 def adjust_config_deploy(opt, config_dict):
     if opt.nb_agents != -1:
         config_dict["default_env_prop"]["cluster_prop"]["nb_agents"] = opt.nb_agents

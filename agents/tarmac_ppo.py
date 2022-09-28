@@ -18,26 +18,29 @@ class TarMAC_PPO:
         torch.manual_seed(self.seed) 
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-        self.hidden_state_size = config_dict["TarMAC_PPO_prop"]['hidden_state_size']
-
+        self.actor_hidden_state_size = config_dict["TarMAC_PPO_prop"]['actor_hidden_state_size']
+        self.communication_size = config_dict["TarMAC_PPO_prop"]['communication_size']
+        self.comm_num_hops = config_dict["TarMAC_PPO_prop"]['comm_num_hops']
+        self.hidden_layer_size = config_dict["TarMAC_PPO_prop"]['hidden_layer_size']
+        self.with_gru = config_dict["TarMAC_PPO_prop"]['with_gru']
  
         # if True: 
         #    self.actor_net = OldActor(num_state=num_state, num_action=num_action) 
         #    self.critic_net = OldCritic(num_state=num_state) 
-        self.actor_net = TarMAC_Actor(num_obs=num_state, num_comm=0, hidden_state_size=self.hidden_state_size, num_action=num_action, with_gru=True).to(self.device) 
-        self.critic_net = TarMAC_Critic(num_obs=num_state, num_comm=0, num_actor_hidden=self.hidden_state_size, hidden_state_size=self.hidden_state_size).to(self.device)
+        self.actor_net = TarMAC_Actor(num_obs=num_state, num_comm=self.communication_size, hidden_state_size=self.actor_hidden_state_size, hidden_layer_size = self.hidden_layer_size, num_action=num_action, with_gru=self.with_gru).to(self.device) 
+        self.critic_net = TarMAC_Critic(num_obs=num_state, num_comm=self.communication_size, num_actor_hidden=self.actor_hidden_state_size,  hidden_layer_size = self.hidden_layer_size).to(self.device)
         
         self.nb_agents = config_dict["default_env_prop"]["cluster_prop"]["nb_agents"]
-        self.batch_size = config_dict["PPO_prop"]["batch_size"] 
-        self.ppo_update_time = config_dict["PPO_prop"]["ppo_update_time"] 
-        self.max_grad_norm = config_dict["PPO_prop"]["max_grad_norm"] 
-        self.clip_param = config_dict["PPO_prop"]["clip_param"] 
-        self.gamma = config_dict["PPO_prop"]["gamma"] 
-        self.lr_actor = config_dict["PPO_prop"]["lr_actor"] 
-        self.lr_critic = config_dict["PPO_prop"]["lr_critic"] 
+        self.batch_size = config_dict["TarMAC_PPO_prop"]["batch_size"] 
+        self.ppo_update_time = config_dict["TarMAC_PPO_prop"]["ppo_update_time"] 
+        self.max_grad_norm = config_dict["TarMAC_PPO_prop"]["max_grad_norm"] 
+        self.clip_param = config_dict["TarMAC_PPO_prop"]["clip_param"] 
+        self.gamma = config_dict["TarMAC_PPO_prop"]["gamma"] 
+        self.lr_actor = config_dict["TarMAC_PPO_prop"]["lr_actor"] 
+        self.lr_critic = config_dict["TarMAC_PPO_prop"]["lr_critic"] 
         self.wandb_run = wandb_run 
         self.log_wandb = not opt.no_wandb 
-        self.zero_eoepisode_return = config_dict["PPO_prop"]["zero_eoepisode_return"]
+        self.zero_eoepisode_return = config_dict["TarMAC_PPO_prop"]["zero_eoepisode_return"]
 
         # Initialize buffer
         self.buffer = {}
@@ -45,7 +48,7 @@ class TarMAC_PPO:
             self.buffer[agent] = []
 
         # Initialize hidden states
-        self.actor_hidden_state = torch.zeros(1, self.hidden_state_size).to(self.device)
+        self.actor_hidden_state = torch.zeros(1, self.actor_hidden_state_size).to(self.device)
 
         print( 
             "ppo_update_time: {}, max_grad_norm: {}, clip_param: {}, gamma: {}, batch_size: {}, lr_actor: {}, lr_critic: {}".format( 
@@ -111,7 +114,7 @@ class TarMAC_PPO:
         reward = [t.reward for t in sequential_buffer] 
         old_action_log_prob = torch.tensor(old_action_log_prob_np, dtype=torch.float).view(-1, 1).to(self.device) 
 
-        actor_hidden = torch.zeros(self.hidden_state_size).view(1,-1).to(self.device)
+        actor_hidden = torch.zeros(self.actor_hidden_state_size).view(1,-1).to(self.device)
         comm = torch.zeros(1, 0).to(self.device)         # Deal with communications later
         for t in sequential_buffer:
             actor_hidden = torch.cat((actor_hidden, t.actor_hidden), dim=0)

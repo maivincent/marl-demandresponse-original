@@ -468,7 +468,25 @@ def cli_train():
         help="Number of updates for TarMAC"
     )
 
-
+    ## TarMAC PPO agent
+    parser.add_argument(
+        "--actor_hidden_state_size",
+        type=int,
+        default=-1,
+        help="Size of the hidden state of the actor's GRU"
+    )
+    parser.add_argument(
+        "--hidden_layer_size",
+        type=int,
+        default=-1,
+        help="Size of the hidden linear layers in the actor and the critic"
+    )
+    parser.add_argument(
+        "--with_gru",
+        choices = ['True','False', 'config'],
+        default = 'config',
+        help="Whether to use a GRU in the actor"
+    )
  
 ### Training parameters
 

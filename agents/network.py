@@ -100,14 +100,17 @@ class DDPG_Network(nn.Module):
 
 
 class TarMAC_Actor(nn.Module):
-    def __init__(self, num_obs, num_comm, hidden_state_size, num_action, with_gru=False):
+    def __init__(self, num_obs, num_comm, hidden_state_size, hidden_layer_size, num_action, with_gru=False):
         super(TarMAC_Actor, self).__init__()
         self.with_gru = with_gru
-        self.fc1 = nn.Linear(num_obs + num_comm, hidden_state_size)
-        self.fc2 = nn.Linear(hidden_state_size, hidden_state_size)
+        print(self.with_gru)
+        self.fc1 = nn.Linear(num_obs + num_comm, hidden_layer_size)
+        self.fc2 = nn.Linear(hidden_layer_size, hidden_layer_size)
         if self.with_gru:
-            self.gru = nn.GRUCell(hidden_state_size, hidden_state_size)
-        self.fc3 = nn.Linear(hidden_state_size, num_action)
+            self.gru = nn.GRUCell(hidden_layer_size, hidden_state_size)
+            self.fc3 = nn.Linear(hidden_state_size, num_action)
+        else:
+            self.fc3 = nn.Linear(hidden_layer_size, num_action)
 
     def forward(self, obs, comm, hidden_state = None):
         x = torch.cat([obs, comm], dim=1)
@@ -121,11 +124,11 @@ class TarMAC_Actor(nn.Module):
         return action_prob, hidden_state
 
 class TarMAC_Critic(nn.Module):
-    def __init__(self, num_obs, num_comm, num_actor_hidden, hidden_state_size):
+    def __init__(self, num_obs, num_comm, num_actor_hidden, hidden_layer_size):
         super(TarMAC_Critic, self).__init__()
-        self.fc1 = nn.Linear(num_obs + num_comm + num_actor_hidden, hidden_state_size)
-        self.fc2 = nn.Linear(hidden_state_size, hidden_state_size)
-        self.fc3 = nn.Linear(hidden_state_size, 1)
+        self.fc1 = nn.Linear(num_obs + num_comm + num_actor_hidden, hidden_layer_size)
+        self.fc2 = nn.Linear(hidden_layer_size, hidden_layer_size)
+        self.fc3 = nn.Linear(hidden_layer_size, 1)
 
 
     def forward(self, obs, comm, actor_hidden_state):

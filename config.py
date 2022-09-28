@@ -435,7 +435,20 @@ config_dict = {
 	},
 
     "TarMAC_PPO_prop": {
-        "hidden_state_size": 128,   # Size of the hidden state of the RNN
+        "actor_hidden_state_size": 16,   # Size of the hidden state of the GRU in the actor
+        "hidden_layer_size": 100,         # Size of the hidden layers in the actor and critic
+	    "communication_size": 16, 	# Size of the communication message
+	    "comm_num_hops": 1,			# Number of hops during the communication
+        "lr_critic": 3e-3,
+        "lr_actor": 1e-3,
+	    "eps": 1e-5,				# Epsilon for RMSProp or Adam optimizer
+	    "gamma": 0.99,				# Discount factor
+	    "max_grad_norm": 0.5,		# Maximal norm of the gradient. If None, no clipping is done.
+        "clip_param": 0.2,
+        "ppo_update_time": 10,
+        "batch_size": 256,
+        "zero_eoepisode_return": False,
+        "with_gru": True,
     },
     
     "DQN_prop": {
