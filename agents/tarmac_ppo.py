@@ -47,9 +47,6 @@ class TarMAC_PPO:
         for agent in range(self.nb_agents):
             self.buffer[agent] = []
 
-        # Initialize hidden states
-        self.actor_hidden_state = torch.zeros(1, self.actor_hidden_state_size).to(self.device)
-
         print( 
             "ppo_update_time: {}, max_grad_norm: {}, clip_param: {}, gamma: {}, batch_size: {}, lr_actor: {}, lr_critic: {}".format( 
                 self.ppo_update_time, 
@@ -68,24 +65,37 @@ class TarMAC_PPO:
             self.critic_net.parameters(), self.lr_critic 
         ) 
  
-    def select_action(self, state): 
-        state = torch.from_numpy(state).float().unsqueeze(0).to(self.device) 
+    def select_action(self, obs, actor_hidden_state): 
+        " Select action for one agent given its obs"
+        obs = torch.from_numpy(obs).float().unsqueeze(0).to(self.device) 
 
         comm = torch.zeros(1, 0).to(self.device)         # Deal with communications later
 
         with torch.no_grad(): 
-            action_prob, self.actor_hidden_state = self.actor_net(state, comm, self.actor_hidden_state) 
+            action_prob, actor_hidden_state = self.actor_net(obs, comm, actor_hidden_state) 
         c = Categorical(action_prob.cpu()) 
         action = c.sample() 
-        return action.item(), action_prob[:, action.item()].item(), self.actor_hidden_state
+        return action.item(), action_prob[:, action.item()].item(), actor_hidden_state
+
+   # def select_actions(self, all_state_obs):
+   #     " Select actions for all agents at once"
+   #     all_state_obs = torch.from_numpy(all_state_obs).float().to(self.device) 
+#
+ #       comm = torch.zeros(all_state_obs.shape[0], 0).to(self.device)         # Deal with communications later
+
+#        with torch.no_grad(): 
+ #           action_prob, self.actor_hidden_state = self.actor_net(all_state_obs, comm, self.actor_hidden_state) 
+  #      c = Categorical(action_prob.cpu()) 
+   #     actions = c.sample() 
+    #    return actions, action_prob, self.actor_hidden_state
  
-    def get_value(self, state): 
+    def get_value(self, state, actor_hidden_state): 
         state = state.view(1, -1)
         state = state.to(self.device) 
         comm = torch.zeros(1, 0).to(self.device)         # Deal with communications later
-
+        actor_hidden_state = actor_hidden_state.view(1, -1).to(self.device)
         with torch.no_grad(): 
-            value = self.critic_net(state, comm, self.actor_hidden_state) 
+            value = self.critic_net(state, comm, actor_hidden_state) 
         return value.cpu().item() 
 
     def reset_buffer(self):
@@ -115,11 +125,14 @@ class TarMAC_PPO:
         old_action_log_prob = torch.tensor(old_action_log_prob_np, dtype=torch.float).view(-1, 1).to(self.device) 
 
         actor_hidden = torch.zeros(self.actor_hidden_state_size).view(1,-1).to(self.device)
+        next_actor_hidden = torch.zeros(self.actor_hidden_state_size).view(1,-1).to(self.device)
         comm = torch.zeros(1, 0).to(self.device)         # Deal with communications later
         for t in sequential_buffer:
             actor_hidden = torch.cat((actor_hidden, t.actor_hidden), dim=0)
+            next_actor_hidden = torch.cat((next_actor_hidden, t.next_hidden), dim=0)
             comm = torch.cat((comm, t.comm), dim=0)
         actor_hidden = actor_hidden[1:]
+        next_actor_hidden = next_actor_hidden[1:]
         comm = comm[1:]
 
         #actor_hidden = torch.tensor(actor_hidden).to(self.device)
@@ -147,7 +160,7 @@ class TarMAC_PPO:
                 if self.zero_eoepisode_return: 
                     R = 0
                 else:
-                    R = self.get_value(next_state[i])   # When last state of episode, start from estimated value of next state
+                    R = self.get_value(next_state[i], next_actor_hidden[i])   # When last state of episode, start from estimated value of next state
             R = reward[i] + self.gamma * R 
             Gt.insert(0, R) 
         Gt = torch.tensor(Gt, dtype=torch.float).to(self.device) 
@@ -160,7 +173,7 @@ class TarMAC_PPO:
                 SubsetRandomSampler(range(len(sequential_buffer))), self.batch_size, False 
             ): 
                 if self.training_step % 1000 == 0: 
-                    print("Time step: {} ，train {} times".format(time_step, self.training_step)) 
+                    print("Time step: {}，train {} times".format(time_step, self.training_step)) 
                 # with torch.no_grad(): 
                 Gt_index = Gt[index].view(-1, 1) 
  

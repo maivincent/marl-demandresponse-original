@@ -306,7 +306,7 @@ def adjust_config_train(opt, config_dict):
         if opt.lr_both != -1:
             print("Setting PPO lr_both to {}".format(opt.lr_both))
             config_dict["TarMAC_PPO_prop"]["lr_critic"] = opt.lr_both
-            config_dict["PPO_pTarMAC_PPO_proprop"]["lr_actor"] = opt.lr_both
+            config_dict["TarMAC_PPO_prop"]["lr_actor"] = opt.lr_both
             if opt.lr_actor != -1 or opt.lr_critic != -1:
                 raise ValueError("Potential conflict: both lr_both and lr_actor or lr_critic were set in the CLI")
         if opt.eps != -1:

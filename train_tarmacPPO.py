@@ -37,7 +37,7 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
 
     # Initialize variables
     Transition = namedtuple(
-        "Transition", ["state", "action", "a_log_prob", "comm", "actor_hidden", "reward", "next_state", "done"]
+        "Transition", ["state", "action", "a_log_prob", "comm", "actor_hidden", "reward", "next_hidden", "next_state", "done"]
     )
     time_steps_per_episode = int(opt.nb_time_steps / opt.nb_tr_episodes)
     time_steps_per_epoch = int(opt.nb_time_steps / opt.nb_tr_epochs)
@@ -51,6 +51,10 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
     # Get first observation
     obs_dict = env.reset()
 
+    # Initialize actor hidden state
+    actor_hidden_state_size = config_dict["TarMAC_PPO_prop"]['actor_hidden_state_size']
+    actor_hidden_state = {k: torch.zeros(1, actor_hidden_state_size).to(device) for k in obs_dict.keys()}
+
     for t in range(opt.nb_time_steps):
 
         # Render observation
@@ -58,13 +62,18 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
             renderer.render(obs_dict)
 
         # Select action with probabilities
+        obs_all = np.array([normStateDict(obs_dict[k], config_dict) for k in obs_dict.keys()]) 
+
+        #actions_and_probs = agent.select_actions(obs_all)
+
         action_and_prob = {
-            k: agent.select_action(normStateDict(obs_dict[k], config_dict))
+            k: agent.select_action(normStateDict(obs_dict[k], config_dict), actor_hidden_state[k])
             for k in obs_dict.keys()
         }
         action = {k: action_and_prob[k][0] for k in obs_dict.keys()}
         action_prob = {k: action_and_prob[k][1] for k in obs_dict.keys()}
-        actor_hidden_state = {k: action_and_prob[k][2] for k in obs_dict.keys()}
+        next_actor_hidden_state = {k: action_and_prob[k][2] for k in obs_dict.keys()}
+
         comm = {k: torch.zeros(1, 0).to(device) for k in obs_dict.keys()}
 
         # Take action and get new transition
@@ -81,14 +90,15 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
         for k in obs_dict.keys():
             agent.store_transition(
                 Transition(
-                    normStateDict(obs_dict[k], config_dict),
-                    action[k],
-                    action_prob[k],
-                    comm[k],
-                    actor_hidden_state[k],
-                    rewards_dict[k],
-                    normStateDict(next_obs_dict[k], config_dict),
-                    done,
+                    state=normStateDict(obs_dict[k], config_dict),
+                    action=action[k],
+                    a_log_prob=action_prob[k],
+                    comm=comm[k],
+                    actor_hidden=actor_hidden_state[k],
+                    reward=rewards_dict[k],
+                    next_hidden=next_actor_hidden_state[k],
+                    next_state=normStateDict(next_obs_dict[k], config_dict),
+                    done=done,
                 ),
                 k
             )
@@ -97,6 +107,9 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
 
         # Set next state as current state
         obs_dict = next_obs_dict
+        
+        # Update actor hidden state
+        actor_hidden_state = next_actor_hidden_state
 
         # New episode, reset environment
         if done:
