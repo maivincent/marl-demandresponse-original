@@ -17,7 +17,7 @@ config_dict = {
         "solar_gain_bool": True,  # Boolean to model the solar gain
     },
     "noise_house_prop": {
-        "noise_mode": "small_noise",  # Can be: no_noise, small_noise, big_noise, small_start_temp, big_start_temp
+        "noise_mode": "big_start_temp",  # Can be: no_noise, small_noise, big_noise, small_start_temp, big_start_temp
         "noise_parameters": {
             "no_noise": {
                 "std_start_temp": 0,  # Std noise on starting temperature
@@ -78,7 +78,7 @@ config_dict = {
     },
 
     "noise_house_prop_test": { 
-        "noise_mode": "small_noise",  # Can be: no_noise, small_noise, big_noise, small_start_temp, big_start_temp 
+        "noise_mode": "small_start_temp",  # Can be: no_noise, small_noise, big_noise, small_start_temp, big_start_temp 
         "noise_parameters": { 
             "no_noise": { 
                 "std_start_temp": 0,  # Std noise on starting temperature 
@@ -127,7 +127,7 @@ config_dict = {
         "lockout_duration": 40,  # In seconds
     },
     "noise_hvac_prop": {
-        "noise_mode": "small_noise",  # Can be: no_noise, small_noise, big_noise
+        "noise_mode": "no_noise",  # Can be: no_noise, small_noise, big_noise
         "noise_parameters": {
             "no_noise": {
                 "cooling_capacity_list": {10000: [10000], 15000: [15000]}
@@ -159,7 +159,7 @@ config_dict = {
         },
     },
     "noise_hvac_prop_test": {
-        "noise_mode": "small_noise",  # Can be: no_noise, small_noise, big_noise
+        "noise_mode": "no_noise",  # Can be: no_noise, small_noise, big_noise
         "noise_parameters": {
             "no_noise": {
                 "std_latent_cooling_fraction": 0,  # Std Gaussian noise on latent_cooling_fraction
@@ -190,7 +190,7 @@ config_dict = {
         "start_datetime_mode": "random",  # Can be random (randomly chosen in the year after original start_datetime) or fixed (stays as the original start_datetime)
         "time_step": 4,  # Time step in seconds
         "cluster_prop": {
-            "temp_mode": "noisy_sinusoidal",  # Can be: constant, sinusoidal, noisy_sinusoidal
+            "temp_mode": "noisy_sinusoidal_heatwave",  # Can be: constant, sinusoidal, noisy_sinusoidal
             "temp_parameters": {
                 "constant": {
                     "day_temp": 26.5,  # Day temperature
@@ -310,7 +310,7 @@ config_dict = {
             },
             "artificial_signal_ratio_range": 1,  # Scale of artificial multiplicative factor randomly multiplied (or divided) at each episode during training. Ex: 1 will not modify signal. 3 will have signal between 33% and 300% of what is computed.
             "artificial_ratio": 1.0,
-            "signal_mode": "regular_steps",  # Mode of the signal. Currently available: flat, sinusoidal, regular_steps
+            "signal_mode": "perlin",  # Mode of the signal. Currently available: flat, sinusoidal, regular_steps, perlin
             "signal_parameters": {
                 "flat": {},
                 "sinusoidals": {
@@ -371,6 +371,8 @@ config_dict = {
             "sig_penalty_mode": "common_L2",  # Mode of signal penalty
         },
     },
+
+
     # Agent properties
     "PPO_prop": {
         "actor_layers": [100, 100],
@@ -435,11 +437,12 @@ config_dict = {
 	},
 
     "TarMAC_PPO_prop": {
-        "actor_hidden_state_size": 16,   # Size of the hidden state of the GRU in the actor
-        "hidden_layer_size": 100,         # Size of the hidden layers in the actor and critic
+        "actor_hidden_state_size": 32,   # Size of the hidden state of the GRU in the actor
+        "critic_hidden_layer_size": 32,         # Size of the hidden layers in the critic
 	    "communication_size": 16, 	# Size of the communication message
+	    "key_size": 8, 	# Size of the key/query
 	    "comm_num_hops": 1,			# Number of hops during the communication
-        "lr_critic": 3e-3,
+        "lr_critic": 1e-3,
         "lr_actor": 1e-3,
 	    "eps": 1e-5,				# Epsilon for RMSProp or Adam optimizer
 	    "gamma": 0.99,				# Discount factor
@@ -447,8 +450,8 @@ config_dict = {
         "clip_param": 0.2,
         "ppo_update_time": 10,
         "batch_size": 256,
-        "zero_eoepisode_return": False,
-        "with_gru": True,
+        "with_gru": False,
+        "with_comm": True,
     },
     
     "DQN_prop": {
@@ -463,5 +466,17 @@ config_dict = {
     },
     "MPC_prop": {
         "rolling_horizon": 15,
+    },
+
+
+    # Training process properties
+    "training_prop": {
+        "nb_inter_saving_actor": 9, # Number of intermediate saving of the actor
+        "nb_test_logs": 200, # Number of times the agent is tested during the training
+        "nb_time_steps_test": 21600, # Number of time steps during the tests (1 full day)
+        "nb_tr_episodes": 200, # Number of training episodes (environment resets)
+        "nb_tr_epochs": 200, # Number of training epochs (policy updates)
+        "nb_tr_logs": 200, # Number of times the performances are averaged and logged during the training
+        "nb_time_steps": 3276800, # Number of time steps during the training
     },
 }

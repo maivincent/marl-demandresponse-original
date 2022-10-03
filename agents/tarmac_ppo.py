@@ -20,10 +20,13 @@ class TarMAC_PPO:
 
         self.actor_hidden_state_size = config_dict["TarMAC_PPO_prop"]['actor_hidden_state_size']
         self.communication_size = config_dict["TarMAC_PPO_prop"]['communication_size']
+        self.key_size = config_dict["TarMAC_PPO_prop"]['key_size']
         self.comm_num_hops = config_dict["TarMAC_PPO_prop"]['comm_num_hops']
-        self.hidden_layer_size = config_dict["TarMAC_PPO_prop"]['hidden_layer_size']
+        self.critic_hidden_layer_size = config_dict["TarMAC_PPO_prop"]['critic_hidden_layer_size']
         self.with_gru = config_dict["TarMAC_PPO_prop"]['with_gru']
- 
+        self.nb_agents = config_dict["default_env_prop"]["cluster_prop"]["nb_agents"]
+        self.with_comm = config_dict["TarMAC_PPO_prop"]['with_comm']
+
         # if True: 
         #    self.actor_net = OldActor(num_state=num_state, num_action=num_action) 
         #    self.critic_net = OldCritic(num_state=num_state) 

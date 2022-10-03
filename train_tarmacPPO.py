@@ -29,6 +29,13 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
     id_rng = np.random.default_rng()
     unique_ID = str(int(id_rng.random() * 1000000))
 
+    nb_time_steps = config_dict["training_prop"]["nb_time_steps"]
+    nb_tr_episodes = config_dict["training_prop"]["nb_tr_episodes"]
+    nb_tr_epochs = config_dict["training_prop"]["nb_tr_epochs"]
+    nb_tr_logs = config_dict["training_prop"]["nb_tr_logs"]
+    nb_test_logs = config_dict["training_prop"]["nb_test_logs"]
+    nb_inter_saving_actor = config_dict["training_prop"]["nb_inter_saving_actor"]    
+
     # Initialize render, if applicable
     if render:
         from env.renderer import Renderer
@@ -37,14 +44,14 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
 
     # Initialize variables
     Transition = namedtuple(
-        "Transition", ["state", "action", "a_log_prob", "comm", "actor_hidden", "reward", "next_hidden", "next_state", "done"]
+        "Transition", ["state", "action", "a_log_prob", "reward", "next_state", "done"]
     )
-    time_steps_per_episode = int(opt.nb_time_steps / opt.nb_tr_episodes)
-    time_steps_per_epoch = int(opt.nb_time_steps / opt.nb_tr_epochs)
-    time_steps_train_log = int(opt.nb_time_steps / opt.nb_tr_logs)
-    time_steps_test_log = int(opt.nb_time_steps / opt.nb_test_logs)
+    time_steps_per_episode = int(nb_time_steps / nb_tr_episodes)
+    time_steps_per_epoch = int(nb_time_steps / nb_tr_epochs)
+    time_steps_train_log = int(nb_time_steps / nb_tr_logs)
+    time_steps_test_log = int(nb_time_steps / nb_test_logs)
     time_steps_per_saving_actor = int(
-        opt.nb_time_steps / (opt.nb_inter_saving_actor + 1)
+        nb_time_steps / (nb_inter_saving_actor + 1)
     )
     metrics = Metrics()
 
@@ -55,7 +62,7 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
     actor_hidden_state_size = config_dict["TarMAC_PPO_prop"]['actor_hidden_state_size']
     actor_hidden_state = {k: torch.zeros(1, actor_hidden_state_size).to(device) for k in obs_dict.keys()}
 
-    for t in range(opt.nb_time_steps):
+    for t in range(nb_time_steps):
 
         # Render observation
         if render:

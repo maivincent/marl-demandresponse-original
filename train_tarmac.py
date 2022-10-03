@@ -33,6 +33,11 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
     communication_size = config_dict["TarMAC_prop"]["communication_size"]
     gamma = config_dict["TarMAC_prop"]["tarmac_gamma"]
 
+    nb_time_steps = config_dict["training_prop"]["nb_time_steps"]
+    nb_tr_epochs = config_dict["training_prop"]["nb_tr_epochs"]
+    nb_tr_logs = config_dict["training_prop"]["nb_tr_logs"]
+    nb_test_logs = config_dict["training_prop"]["nb_test_logs"]
+
     actor_critic = agent.actor_critic
 
     nb_agents = env.nb_agents
@@ -45,9 +50,11 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
     #TODO: Add metrics for tarmac
     #TODO: implement obs_shape in env in gym format
 
-    time_steps_per_epoch = int(opt.nb_time_steps/opt.nb_tr_epochs)   # epochs and episodes must be the same
-    time_steps_train_log = int(opt.nb_time_steps/opt.nb_tr_logs)
-    time_steps_test_log = int(opt.nb_time_steps/opt.nb_test_logs)
+    time_steps_per_epoch = int(nb_time_steps/nb_tr_epochs)   # epochs and episodes must be the same
+    time_steps_train_log = int(nb_time_steps/nb_tr_logs)
+    time_steps_test_log = int(nb_time_steps/nb_test_logs)
+
+ 
 
     # Initialize metrics
     metrics = Metrics()
@@ -69,7 +76,7 @@ def train_tarmac(env: MADemandResponseEnv, agent: A2C_ACKTR, opt, config_dict: d
 
     print("Training Tarmac")
 
-    for t in range(opt.nb_time_steps):
+    for t in range(nb_time_steps):
         if render:
             renderer.render(obs_dict)
 

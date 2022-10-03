@@ -23,6 +23,12 @@ def train_dqn(env, agent, opt, config_dict, render, log_wandb, wandb_run):
     id_rng = np.random.default_rng()
     unique_ID = str(int(id_rng.random() * 1000000))
 
+    nb_time_steps = config_dict["training_prop"]["nb_time_steps"]
+    nb_tr_episodes = config_dict["training_prop"]["nb_tr_episodes"]
+    nb_tr_epochs = config_dict["training_prop"]["nb_tr_epochs"]
+    nb_tr_logs = config_dict["training_prop"]["nb_tr_logs"]
+    nb_test_logs = config_dict["training_prop"]["nb_test_logs"]
+    nb_inter_saving_actor = config_dict["training_prop"]["nb_inter_saving_actor"]
 
     # Initialize render, if applicable
     if render:
@@ -30,10 +36,10 @@ def train_dqn(env, agent, opt, config_dict, render, log_wandb, wandb_run):
         renderer = Renderer(env.nb_agents)
     
     # Variables
-    time_steps_per_episode = int(opt.nb_time_steps/opt.nb_tr_episodes)
-    time_steps_train_log = int(opt.nb_time_steps/opt.nb_tr_logs)
-    time_steps_test_log = int(opt.nb_time_steps/opt.nb_test_logs)
-    time_steps_per_saving_actor = int(opt.nb_time_steps/(opt.nb_inter_saving_actor+1))
+    time_steps_per_episode = int(nb_time_steps/nb_tr_episodes)
+    time_steps_train_log = int(nb_time_steps/nb_tr_logs)
+    time_steps_test_log = int(nb_time_steps/nb_test_logs)
+    time_steps_per_saving_actor = int(nb_time_steps/(nb_inter_saving_actor+1))
 
     metrics = Metrics()
     epsilon = 1.0
@@ -41,7 +47,7 @@ def train_dqn(env, agent, opt, config_dict, render, log_wandb, wandb_run):
     # Get first observation
     obs_dict = env.reset()
 
-    for t in range(opt.nb_time_steps):
+    for t in range(nb_time_steps):
         
         # Render observation
         if render:

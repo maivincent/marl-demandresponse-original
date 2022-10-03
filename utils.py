@@ -150,9 +150,6 @@ def adjust_config_train(opt, config_dict):
     ### Agent
 
     ## Agent communication constraints
-
-
-## Agent communication constraints
     print("-- Agent communication constraints --")
     if opt.nb_agents_comm != -1:
         print("Setting nb_agents_comm to {}".format(opt.nb_agents_comm))
@@ -327,17 +324,44 @@ def adjust_config_train(opt, config_dict):
         if opt.batch_size != -1:
             print("Setting TarMAC batch_size to {}".format(opt.batch_size))
             config_dict["TarMAC_PPO_prop"]["batch_size"] = opt.batch_size
-        if opt.hidden_layer_size != -1:
-            print("Setting TarMAC hidden_layer_size to {}".format(opt.hidden_layer_size))
-            config_dict["TarMAC_PPO_prop"]["hidden_layer_size"] = opt.hidden_layer_size
+        if opt.critic_hidden_layer_size != -1:
+            print("Setting TarMAC critic_hidden_layer_size to {}".format(opt.critic_hidden_layer_size))
+            config_dict["TarMAC_PPO_prop"]["critic_hidden_layer_size"] = opt.critic_hidden_layer_size
         if opt.with_gru != 'config':
             print("Setting TarMAC with_gru to {}".format(opt.with_gru))
             if opt.with_gru == "True":
                 config_dict["TarMAC_PPO_prop"]["with_gru"] = True
             else:
                 config_dict["TarMAC_PPO_prop"]["with_gru"] = False
-        
+        if opt.with_comm != 'config':
+            print("Setting TarMAC with_comm to {}".format(opt.with_comm))
+            if opt.with_comm == "True":
+                config_dict["TarMAC_PPO_prop"]["with_comm"] = True
+            else:
+                config_dict["TarMAC_PPO_prop"]["with_comm"] = False        
 
+    ### Training process
+    if opt.nb_inter_saving_actor != -1:
+        print("Setting nb_inter_saving_actor to {}".format(opt.nb_inter_saving_actor))
+        config_dict["training_prop"]["nb_inter_saving_actor"] = opt.nb_inter_saving_actor
+    if opt.nb_test_logs != -1:
+        print("Setting nb_test_logs to {}".format(opt.nb_test_logs))
+        config_dict["training_prop"]["nb_test_logs"] = opt.nb_test_logs
+    if opt.nb_time_steps_test != -1:
+        print("Setting nb_time_steps_test to {}".format(opt.nb_time_steps_test))
+        config_dict["training_prop"]["nb_time_steps_test"] = opt.nb_time_steps_test
+    if opt.nb_tr_episodes != -1:
+        print("Setting nb_tr_episodes to {}".format(opt.nb_tr_episodes))
+        config_dict["training_prop"]["nb_tr_episodes"] = opt.nb_tr_episodes
+    if opt.nb_tr_epochs != -1:
+        print("Setting nb_tr_epochs to {}".format(opt.nb_tr_epochs))
+        config_dict["training_prop"]["nb_tr_epochs"] = opt.nb_tr_epochs
+    if opt.nb_tr_logs != -1:
+        print("Setting nb_tr_logs to {}".format(opt.nb_tr_logs))
+        config_dict["training_prop"]["nb_tr_logs"] = opt.nb_tr_logs
+    if opt.nb_time_steps != -1:
+        print("Setting nb_time_steps to {}".format(opt.nb_time_steps))
+        config_dict["training_prop"]["nb_time_steps"] = opt.nb_time_steps
 
 def adjust_config_deploy(opt, config_dict):
     if opt.nb_agents != -1:
@@ -703,9 +727,11 @@ def test_dqn_agent(agent, env, config_dict, opt, tr_time_steps):
     cumul_temp_error = 0
     cumul_signal_error = 0
 
+    nb_time_steps_test = config_dict["training_prop"]["nb_time_steps_test"]
+
     obs_dict = env.reset()
     with torch.no_grad():
-        for t in range(opt.nb_time_steps_test):
+        for t in range(nb_time_steps_test):
             action = {
                 k: agent.select_action(normStateDict(obs_dict[k], config_dict))
                 for k in obs_dict.keys()
@@ -721,9 +747,9 @@ def test_dqn_agent(agent, env, config_dict, opt, tr_time_steps):
                     obs_dict[i]["reg_signal"] - obs_dict[i]["cluster_hvac_power"]
                 ) / (env.nb_agents**2)
 
-    mean_avg_return = cumul_avg_reward / opt.nb_time_steps_test
-    mean_temp_error = cumul_temp_error / opt.nb_time_steps_test
-    mean_signal_error = cumul_signal_error / opt.nb_time_steps_test
+    mean_avg_return = cumul_avg_reward / nb_time_steps_test
+    mean_temp_error = cumul_temp_error / nb_time_steps_test
+    mean_signal_error = cumul_signal_error / nb_time_steps_test
 
     return {
         "Mean test return": mean_avg_return,
@@ -742,8 +768,10 @@ def test_ppo_agent(agent, env, config_dict, opt, tr_time_steps):
     cumul_temp_error = 0
     cumul_signal_error = 0
     obs_dict = env.reset()
+    nb_time_steps_test = config_dict["training_prop"]["nb_time_steps_test"]
+
     with torch.no_grad():
-        for t in range(opt.nb_time_steps_test):
+        for t in range(nb_time_steps_test):
             action_and_prob = {
                 k: agent.select_action(normStateDict(obs_dict[k], config_dict))
                 for k in obs_dict.keys()
@@ -759,9 +787,9 @@ def test_ppo_agent(agent, env, config_dict, opt, tr_time_steps):
                 cumul_signal_error += np.abs(
                     obs_dict[i]["reg_signal"] - obs_dict[i]["cluster_hvac_power"]
                 ) / (env.nb_agents**2)
-    mean_avg_return = cumul_avg_reward / opt.nb_time_steps_test
-    mean_temp_error = cumul_temp_error / opt.nb_time_steps_test
-    mean_signal_error = cumul_signal_error / opt.nb_time_steps_test
+    mean_avg_return = cumul_avg_reward / nb_time_steps_test
+    mean_temp_error = cumul_temp_error / nb_time_steps_test
+    mean_signal_error = cumul_signal_error / nb_time_steps_test
 
     return {
         "Mean test return": mean_avg_return,
@@ -769,6 +797,46 @@ def test_ppo_agent(agent, env, config_dict, opt, tr_time_steps):
         "Test mean signal error": mean_signal_error,
         "Training steps": tr_time_steps,
     }
+
+def test_tarmac_ppo_agent(agent, env, config_dict, opt, tr_time_steps):
+    """
+    Test ppo agent on an episode of nb_test_timesteps, with
+    """
+    env = deepcopy(env)
+    cumul_avg_reward = 0
+    cumul_temp_error = 0
+    cumul_signal_error = 0
+    obs_dict = env.reset()
+    nb_time_steps_test = config_dict["training_prop"]["nb_time_steps_test"]
+
+    with torch.no_grad():
+        for t in range(nb_time_steps_test):
+
+            obs_all = np.array([normStateDict(obs_dict[k], config_dict) for k in obs_dict.keys()]) 
+
+            actions_and_probs = agent.select_actions(obs_all)
+            action = {k: actions_and_probs[0][k] for k in obs_dict.keys()}
+
+            obs_dict, rewards_dict, dones_dict, info_dict = env.step(action)
+            for i in range(env.nb_agents):
+                cumul_avg_reward += rewards_dict[i] / env.nb_agents
+                cumul_temp_error += (
+                    np.abs(obs_dict[i]["house_temp"] - obs_dict[i]["house_target_temp"])
+                    / env.nb_agents
+                )
+                cumul_signal_error += np.abs(
+                    obs_dict[i]["reg_signal"] - obs_dict[i]["cluster_hvac_power"]
+                ) / (env.nb_agents**2)
+    mean_avg_return = cumul_avg_reward / nb_time_steps_test
+    mean_temp_error = cumul_temp_error / nb_time_steps_test
+    mean_signal_error = cumul_signal_error / nb_time_steps_test
+
+    return {
+        "Mean test return": mean_avg_return,
+        "Test mean temperature error": mean_temp_error,
+        "Test mean signal error": mean_signal_error,
+        "Training steps": tr_time_steps,
+    } 
 
 def test_tarmac_agent(agent, env, config_dict, opt, tr_time_steps, init_states, init_comms, init_masks):
     "Test tarmac agent on an episode of nb_test_timesteps"
@@ -778,6 +846,8 @@ def test_tarmac_agent(agent, env, config_dict, opt, tr_time_steps, init_states, 
     cumul_signal_error = 0
     cumul_temp_offset = 0
     obs_dict = env.reset()
+    nb_time_steps_test = config_dict["training_prop"]["nb_time_steps_test"]
+
     obs_shape = normStateDict(obs_dict[0], config_dict).shape       #(obs_size,)
     obs_torch = obs_dict2obs_torch(obs_shape, obs_dict, config_dict) # [1, nb agents, obs_size]
 
@@ -791,7 +861,7 @@ def test_tarmac_agent(agent, env, config_dict, opt, tr_time_steps, init_states, 
     obs = obs_dict2obs_torch(obs_shape, obs_dict, config_dict)            # [1, nb_agents, obs_size]
 
     with torch.no_grad():
-        for t in range(1, opt.nb_time_steps_test):
+        for t in range(1, nb_time_steps_test):
             _, actions, _, states, communications, _ = agent.act(               # Action is a tensor of shape [1, nb_agents, 1], value is a tensor of shape [1, 1], actions_log_prob is a tensor of shape [1, nb_agents, 1], 
                 obs, states,                                         # communication is a tensor of shape [1, nb_agents, COMMUNICATION_SIZE], states is a tensor of shape [1, nb_agents, STATE_SIZE],
                 communications, init_masks,
@@ -811,10 +881,10 @@ def test_tarmac_agent(agent, env, config_dict, opt, tr_time_steps, init_states, 
                     obs_dict[i]["reg_signal"] - obs_dict[i]["cluster_hvac_power"]
                 ) / (env.nb_agents**2)
 
-    mean_avg_return = cumul_avg_reward / opt.nb_time_steps_test
-    mean_temp_error = cumul_temp_error / opt.nb_time_steps_test
-    mean_temp_offset = cumul_temp_offset / opt.nb_time_steps_test
-    mean_signal_error = cumul_signal_error / opt.nb_time_steps_test
+    mean_avg_return = cumul_avg_reward / nb_time_steps_test
+    mean_temp_error = cumul_temp_error / nb_time_steps_test
+    mean_temp_offset = cumul_temp_offset / nb_time_steps_test
+    mean_signal_error = cumul_signal_error / nb_time_steps_test
 
     return {
         "Mean test return": mean_avg_return,
@@ -845,15 +915,17 @@ def testAgentHouseTemperature(
             prob_on[i] = action_prob
     return prob_on
 
-
+def test_DDQP_agent(agent, env, config_dict, opt, tr_time_steps, init_states, init_comms, init_masks):
     #obs_torch = init_obs
 
     states = init_states
     communications = init_comms
     masks = init_masks
     
+    nb_time_steps_test = config_dict["training_prop"]["nb_time_steps_test"]
+
     with torch.no_grad():
-        for t in range(opt.nb_time_steps_test):
+        for t in range(nb_time_steps_test):
             _, actions, _, states, communications, _ = agent.act(obs_torch, states, communications, masks)
             actions_dict = actionsAC2actions_dict(actions)  # [1, nb_agents, 1 (action_size)]
             obs_dict, rewards_dict, done_dict, _ = env.step(actions_dict)
@@ -870,10 +942,10 @@ def testAgentHouseTemperature(
                 cumul_signal_error += np.abs(
                     obs_dict[i]["reg_signal"] - obs_dict[i]["cluster_hvac_power"]
                 ) / (env.nb_agents**2)
-    mean_avg_return = cumul_avg_reward / opt.nb_time_steps_test
-    mean_temp_error = cumul_temp_error / opt.nb_time_steps_test
-    mean_signal_error = cumul_signal_error / opt.nb_time_steps_test
-    mean_temp_offset = cumul_temp_offset / opt.nb_time_steps_test
+    mean_avg_return = cumul_avg_reward / nb_time_steps_test
+    mean_temp_error = cumul_temp_error / nb_time_steps_test
+    mean_signal_error = cumul_signal_error / nb_time_steps_test
+    mean_temp_offset = cumul_temp_offset / nb_time_steps_test
 
     return {
         "Mean test return": mean_avg_return,
