@@ -30,10 +30,9 @@ class TarMAC_PPO:
         # if True: 
         #    self.actor_net = OldActor(num_state=num_state, num_action=num_action) 
         #    self.critic_net = OldCritic(num_state=num_state) 
-        self.actor_net = TarMAC_Actor(num_obs=num_state, num_comm=self.communication_size, hidden_state_size=self.actor_hidden_state_size, hidden_layer_size = self.hidden_layer_size, num_action=num_action, with_gru=self.with_gru).to(self.device) 
-        self.critic_net = TarMAC_Critic(num_obs=num_state, num_comm=self.communication_size, num_actor_hidden=self.actor_hidden_state_size,  hidden_layer_size = self.hidden_layer_size).to(self.device)
+        self.actor_net = TarMAC_Actor(num_obs=num_state, num_key=self.key_size, num_value=self.communication_size, hidden_state_size = self.actor_hidden_state_size, num_action=num_action, num_hops=self.comm_num_hops, with_gru=self.with_gru, with_comm=self.with_comm).to(self.device) 
+        self.critic_net = TarMAC_Critic(num_agents = self.nb_agents, num_obs=num_state, hidden_layer_size=self.critic_hidden_layer_size).to(self.device)
         
-        self.nb_agents = config_dict["default_env_prop"]["cluster_prop"]["nb_agents"]
         self.batch_size = config_dict["TarMAC_PPO_prop"]["batch_size"] 
         self.ppo_update_time = config_dict["TarMAC_PPO_prop"]["ppo_update_time"] 
         self.max_grad_norm = config_dict["TarMAC_PPO_prop"]["max_grad_norm"] 
@@ -43,7 +42,6 @@ class TarMAC_PPO:
         self.lr_critic = config_dict["TarMAC_PPO_prop"]["lr_critic"] 
         self.wandb_run = wandb_run 
         self.log_wandb = not opt.no_wandb 
-        self.zero_eoepisode_return = config_dict["TarMAC_PPO_prop"]["zero_eoepisode_return"]
 
         # Initialize buffer
         self.buffer = {}
@@ -68,38 +66,40 @@ class TarMAC_PPO:
             self.critic_net.parameters(), self.lr_critic 
         ) 
  
-    def select_action(self, obs, actor_hidden_state): 
+    def select_action(self, obs): 
         " Select action for one agent given its obs"
         obs = torch.from_numpy(obs).float().unsqueeze(0).to(self.device) 
 
-        comm = torch.zeros(1, 0).to(self.device)         # Deal with communications later
-
         with torch.no_grad(): 
-            action_prob, actor_hidden_state = self.actor_net(obs, comm, actor_hidden_state) 
+            action_prob = self.actor_net(obs) 
+
         c = Categorical(action_prob.cpu()) 
         action = c.sample() 
-        return action.item(), action_prob[:, action.item()].item(), actor_hidden_state
+        return action.item(), action_prob[:, action.item()].item()
 
-   # def select_actions(self, all_state_obs):
-   #     " Select actions for all agents at once"
-   #     all_state_obs = torch.from_numpy(all_state_obs).float().to(self.device) 
-#
- #       comm = torch.zeros(all_state_obs.shape[0], 0).to(self.device)         # Deal with communications later
+    def select_actions(self, all_state_obs):
+        " Select actions for all agents at once"
+        all_state_obs = torch.from_numpy(all_state_obs).float().unsqueeze(0).to(self.device) # (1, Agents, State dims)
 
-#        with torch.no_grad(): 
- #           action_prob, self.actor_hidden_state = self.actor_net(all_state_obs, comm, self.actor_hidden_state) 
-  #      c = Categorical(action_prob.cpu()) 
-   #     actions = c.sample() 
-    #    return actions, action_prob, self.actor_hidden_state
- 
-    def get_value(self, state, actor_hidden_state): 
-        state = state.view(1, -1)
-        state = state.to(self.device) 
-        comm = torch.zeros(1, 0).to(self.device)         # Deal with communications later
-        actor_hidden_state = actor_hidden_state.view(1, -1).to(self.device)
         with torch.no_grad(): 
-            value = self.critic_net(state, comm, actor_hidden_state) 
-        return value.cpu().item() 
+            action_prob = self.actor_net(all_state_obs).squeeze(0)  # (Agents, action dims)
+        c = Categorical(action_prob.cpu()) 
+        actions = c.sample()        #(Agents, actions)
+
+        actions_np = actions.numpy()
+
+        action_probs_np = action_prob.cpu().numpy()
+        action_probs_np = action_probs_np[:,actions_np[0,:]]
+        return actions_np, action_probs_np
+ 
+    def get_value(self, state): 
+
+        state = state.to(self.device) 
+        state = state.unsqueeze(0) # one-sized "batch" --> (1, num_agents, num_obs)
+
+        with torch.no_grad(): 
+            value = self.critic_net(state) 
+        return value
 
     def reset_buffer(self):
         self.buffer = {}
@@ -110,115 +110,101 @@ class TarMAC_PPO:
         self.buffer[agent].append(transition) 
  
     def update(self, time_step): 
-        sequential_buffer =  []
-        for agent in range(self.nb_agents):
-            sequential_buffer += self.buffer[agent]
 
-        state_np = np.array([t.state for t in sequential_buffer])
-        next_state_np = np.array([t.next_state for t in sequential_buffer])
-        action_np = np.array([t.action for t in sequential_buffer])
-        old_action_log_prob_np = np.array([t.a_log_prob for t in sequential_buffer])
-        #comm = np.array([t.comm for t in sequential_buffer])
-        #actor_hidden = np.array([t.actor_hidden for t in sequential_buffer])
+
+        # Organizing elements from buffer
+        state_np = np.array([[self.buffer[agent][time_step].state for agent in range(self.nb_agents)] for time_step in range(len(self.buffer[0]))])
+        next_state_np = np.array([[self.buffer[agent][time_step].next_state for agent in range(self.nb_agents)] for time_step in range(len(self.buffer[0]))])
+        action_np = np.array([[self.buffer[agent][time_step].action for agent in range(self.nb_agents)] for time_step in range(len(self.buffer[0]))])
+        old_action_log_prob_np = np.array([[self.buffer[agent][time_step].a_log_prob for agent in range(self.nb_agents)] for time_step in range(len(self.buffer[0]))])
+        reward_np = np.array([[self.buffer[agent][time_step].reward for agent in range(self.nb_agents)] for time_step in range(len(self.buffer[0]))])
+        done_np = np.array([[self.buffer[agent][time_step].done for agent in range(self.nb_agents)] for time_step in range(len(self.buffer[0]))])
         
-        state = torch.tensor(state_np, dtype=torch.float).to(self.device) 
-        next_state = torch.tensor(next_state_np, dtype=torch.float).to(self.device) 
-        action = torch.tensor(action_np, dtype=torch.long).view(-1, 1).to(self.device) 
-        reward = [t.reward for t in sequential_buffer] 
-        old_action_log_prob = torch.tensor(old_action_log_prob_np, dtype=torch.float).view(-1, 1).to(self.device) 
+        state = torch.tensor(state_np, dtype=torch.float).to(self.device)                                   # (Time steps, Agents, State dim)
+        next_state = torch.tensor(next_state_np, dtype=torch.float).to(self.device)                         # (Time steps, Agents, State dim)
+        action = torch.tensor(action_np, dtype=torch.long).to(self.device)                                  # (Time steps, Agents, Action dim)
+        old_action_log_prob = torch.tensor(old_action_log_prob_np, dtype=torch.float).to(self.device)       # (Time steps, Agents, Action dim)
+        reward = torch.tensor(reward_np, dtype=torch.long).unsqueeze(2).to(self.device)                     # (Time steps, Agents, 1)
+        done = torch.tensor(done_np, dtype=torch.float).unsqueeze(2).to(self.device)                        # (Time steps, Agents, 1)
 
-        actor_hidden = torch.zeros(self.actor_hidden_state_size).view(1,-1).to(self.device)
-        next_actor_hidden = torch.zeros(self.actor_hidden_state_size).view(1,-1).to(self.device)
-        comm = torch.zeros(1, 0).to(self.device)         # Deal with communications later
-        for t in sequential_buffer:
-            actor_hidden = torch.cat((actor_hidden, t.actor_hidden), dim=0)
-            next_actor_hidden = torch.cat((next_actor_hidden, t.next_hidden), dim=0)
-            comm = torch.cat((comm, t.comm), dim=0)
-        actor_hidden = actor_hidden[1:]
-        next_actor_hidden = next_actor_hidden[1:]
-        comm = comm[1:]
+        num_time_steps, num_agents, _ = state.shape
 
-        #actor_hidden = torch.tensor(actor_hidden).to(self.device)
-        done = [t.done for t in sequential_buffer] 
+        # Compute the returns
+        Gt = torch.zeros(1, num_agents, 1).to(self.device)     # Artificially initialize the return tensor
+        for i in reversed(range(num_time_steps)): 
+            if done[i][0]:     # All agents are done at the same time as done is only when environment is reset
+                R = self.get_value(next_state[i]).unsqueeze(2)   # When last state of episode, start from estimated value of next state (1, num_agents, 1)
+            R = reward[i].unsqueeze(0) + self.gamma * R    #(i, num_agents, 1)
+            Gt = torch.cat([R, Gt], dim=0)          # Concatenate the returns for each time step (new return is in front of old returns)
+        Gt = Gt[:-1,:,:]  # Remove last element as it was artificially added # (Time steps, Agents, 1)
 
-        """
-        # Changed to accelerate process. UserWarning: Creating a tensor from a list of numpy.ndarrays is extremely slow. Please consider converting the list to a single numpy.ndarray $
-
-        state = torch.tensor([t.state for t in sequential_buffer], dtype=torch.float) 
-        next_state = torch.tensor([t.next_state for t in sequential_buffer], dtype=torch.float)
-        action = torch.tensor([t.action for t in sequential_buffer], dtype=torch.long).view(-1, 1) 
-        reward = [t.reward for t in sequential_buffer] 
-
-        old_action_log_prob = torch.tensor( 
-            [t.a_log_prob for t in sequential_buffer], dtype=torch.float 
-        ).view(-1, 1) 
-        done = [t.done for t in sequential_buffer] 
-        
-        """
-
-
-        Gt = [] 
-        for i in reversed(range(len(reward))): 
-            if done[i]: 
-                if self.zero_eoepisode_return: 
-                    R = 0
-                else:
-                    R = self.get_value(next_state[i], next_actor_hidden[i])   # When last state of episode, start from estimated value of next state
-            R = reward[i] + self.gamma * R 
-            Gt.insert(0, R) 
-        Gt = torch.tensor(Gt, dtype=torch.float).to(self.device) 
+        # Update actor and critic
         ratios = np.array([]) 
-        clipped_ratios = np.array([]) 
-        gradient_norms = np.array([]) 
+        actor_gradient_norms = np.array([]) 
+        critic_gradient_norms = np.array([]) 
+        action_losses = np.array([])
+        value_losses = np.array([])
         print("The agent is updating....") 
+
+
         for i in range(self.ppo_update_time): 
             for index in BatchSampler( 
-                SubsetRandomSampler(range(len(sequential_buffer))), self.batch_size, False 
+                SubsetRandomSampler(range(num_time_steps)), self.batch_size, False 
             ): 
                 if self.training_step % 1000 == 0: 
                     print("Time step: {}，train {} times".format(time_step, self.training_step)) 
-                # with torch.no_grad(): 
-                Gt_index = Gt[index].view(-1, 1) 
- 
-                V = self.critic_net(state[index], comm[index], actor_hidden[index])
-                delta = Gt_index - V 
-                advantage = delta.detach() 
- 
+
+                Gt_index = Gt[index]        # (Batch size, num_agents, 1)
+                V = self.critic_net(state[index]).unsqueeze(2)   # (Batch size, num_agents) --> (Batch size, num_agents, 1)
+
+                delta = Gt_index - V                    #(Batch size, num_agents, 1)
+
+                advantage = delta.detach()              # Detach from the graph to avoid backpropagating
+
                 # epoch iteration, PPO core 
-                action_prob = self.actor_net(state[index], comm[index], actor_hidden[index])[0].gather( 
-                    1, action[index] 
-                )  # new policy 
+
+                action_prob = self.actor_net(state[index])  # (Batch size, num_agents, state dim) --> (Batch size, num_agents, action_choices * action dim)
+
+                action_prob = action_prob.gather(2, action[index])          # New policy's action probability --> (Batch size, num_agents, action dim)
+  
+
                 ratio = action_prob / old_action_log_prob[index] 
                 clipped_ratio = torch.clamp( 
                     ratio, 1 - self.clip_param, 1 + self.clip_param 
                 ) 
                 ratios = np.append(ratios, ratio.cpu().detach().numpy()) 
-                clipped_ratios = np.append( 
-                    clipped_ratios, clipped_ratio.cpu().detach().numpy() 
-                ) 
- 
-                surr1 = ratio * advantage 
-                surr2 = clipped_ratio * advantage 
- 
+                surr1 = ratio * advantage               # (Batch size, num_agents, 1)
+                surr2 = clipped_ratio * advantage       # (Batch size, num_agents, 1)
+
+
                 # update actor network 
-                action_loss = -torch.min(surr1, surr2).mean()  # MAX->MIN desent 
-                # self.writer.add_scalar('loss/action_loss', action_loss, global_step=self.training_step) 
+                action_loss = -torch.min(surr1, surr2).mean()  # (Batch size, num_agents, 1) --> (Batch size, num_agents, 1) -->  1 (average over all batch and all agents).   MAX->MIN desent 
                 self.actor_optimizer.zero_grad() 
+                action_losses = np.append(action_losses, action_loss.cpu().detach())
+
                 action_loss.backward() 
-                gradient_norm = nn.utils.clip_grad_norm_( 
+                actor_gradient_norm = nn.utils.clip_grad_norm_( 
                     self.actor_net.parameters(), self.max_grad_norm 
                 ) 
-                gradient_norms = np.append(gradient_norms, gradient_norm.cpu().detach()) 
+                actor_gradient_norms = np.append(actor_gradient_norms, actor_gradient_norm.cpu().detach()) 
                 self.actor_optimizer.step() 
  
                 # update critic network 
-                value_loss = F.mse_loss(Gt_index, V) 
-                # self.writer.add_scalar('loss/value_loss', value_loss, global_step=self.training_step) 
+                value_loss = torch.pow(delta, 2).mean(0).mean(0)
+                #print(value_loss.shape)
+                #a = b #.mean(0) #F.mse_loss(Gt_index, V) 
                 self.critic_net_optimizer.zero_grad() 
+                value_losses = np.append(value_losses, value_loss.cpu().detach())
+                
+                #print(value_loss)
+
+
                 value_loss.backward() 
-                nn.utils.clip_grad_norm_( 
+                critic_gradient_norm = nn.utils.clip_grad_norm_( 
                     self.critic_net.parameters(), self.max_grad_norm 
                 ) 
+                critic_gradient_norms = np.append(critic_gradient_norms, critic_gradient_norm.cpu().detach()) 
+
                 self.critic_net_optimizer.step() 
                 self.training_step += 1 
  
@@ -232,22 +218,28 @@ class TarMAC_PPO:
             per75_ratio = np.percentile(ratios, 75) 
             per25_ratio = np.percentile(ratios, 25) 
             per5_ratio = np.percentile(ratios, 5) 
-            max_cl_ratio = np.max(clipped_ratios) 
-            mean_cl_ratio = np.mean(clipped_ratios) 
-            median_cl_ratio = np.median(clipped_ratios) 
-            min_cl_ratio = np.min(clipped_ratios) 
-            per95_cl_ratio = np.percentile(clipped_ratios, 95) 
-            per75_cl_ratio = np.percentile(clipped_ratios, 75) 
-            per25_cl_ratio = np.percentile(clipped_ratios, 25) 
-            per5_cl_ratio = np.percentile(clipped_ratios, 5) 
-            max_gradient_norm = np.max(gradient_norms) 
-            mean_gradient_norm = np.mean(gradient_norms) 
-            median_gradient_norm = np.median(gradient_norms) 
-            min_gradient_norm = np.min(gradient_norms) 
-            per95_gradient_norm = np.percentile(gradient_norms, 95) 
-            per75_gradient_norm = np.percentile(gradient_norms, 75) 
-            per25_gradient_norm = np.percentile(gradient_norms, 25) 
-            per5_gradient_norm = np.percentile(gradient_norms, 5) 
+            max_agradient_norm = np.max(actor_gradient_norms) 
+            mean_agradient_norm = np.mean(actor_gradient_norms) 
+            median_agradient_norm = np.median(actor_gradient_norms) 
+            min_agradient_norm = np.min(actor_gradient_norms) 
+            per95_agradient_norm = np.percentile(actor_gradient_norms, 95) 
+            per75_agradient_norm = np.percentile(actor_gradient_norms, 75) 
+            per25_agradient_norm = np.percentile(actor_gradient_norms, 25) 
+            per5_agradient_norm = np.percentile(actor_gradient_norms, 5) 
+            max_cgradient_norm = np.max(critic_gradient_norms) 
+            mean_cgradient_norm = np.mean(critic_gradient_norms) 
+            median_cgradient_norm = np.median(critic_gradient_norms) 
+            min_cgradient_norm = np.min(critic_gradient_norms) 
+            per95_cgradient_norm = np.percentile(critic_gradient_norms, 95) 
+            per75_cgradient_norm = np.percentile(critic_gradient_norms, 75) 
+            per25_cgradient_norm = np.percentile(critic_gradient_norms, 25) 
+            per5_cgradient_norm = np.percentile(critic_gradient_norms, 5) 
+
+            mean_action_loss = np.mean(action_losses)
+            mean_value_loss = np.mean(value_losses)
+            median_action_loss = np.median(action_losses)
+            median_value_loss = np.median(value_losses)
+
  
             self.wandb_run.log( 
                 { 
@@ -259,23 +251,27 @@ class TarMAC_PPO:
                     "PPO ratio 5 percentile": per5_ratio, 
                     "PPO ratio 75 percentile": per75_ratio, 
                     "PPO ratio 25 percentile": per25_ratio, 
-                    "PPO max clipped ratio": max_cl_ratio, 
-                    "PPO mean clipped ratio": mean_cl_ratio, 
-                    "PPO median clipped ratio": median_cl_ratio, 
-                    "PPO min clipped ratio": min_cl_ratio, 
-                    "PPO clipped ratio 95 percentile": per95_cl_ratio, 
-                    "PPO clipped ratio 5 percentile": per5_cl_ratio, 
-                    "PPO clipped ratio 75 percentile": per75_cl_ratio, 
-                    "PPO clipped ratio 25 percentile": per25_cl_ratio, 
-                    "PPO max gradient norm": max_gradient_norm, 
-                    "PPO mean gradient norm": mean_gradient_norm, 
-                    "PPO median gradient norm": median_gradient_norm, 
-                    "PPO min gradient norm": min_gradient_norm, 
-                    "PPO gradient norm 95 percentile": per95_gradient_norm, 
-                    "PPO gradient norm 5 percentile": per5_gradient_norm, 
-                    "PPO gradient norm 75 percentile": per75_gradient_norm, 
-                    "PPO gradient norm 25 percentile": per25_gradient_norm, 
-                    "Training steps": t, 
+                    "Actor PPO max gradient norm": max_agradient_norm, 
+                    "Actor PPO mean gradient norm": mean_agradient_norm, 
+                    "Actor PPO median gradient norm": median_agradient_norm, 
+                    "Actor PPO min gradient norm": min_agradient_norm, 
+                    "Actor PPO gradient norm 95 percentile": per95_agradient_norm, 
+                    "Actor PPO gradient norm 5 percentile": per5_agradient_norm, 
+                    "Actor PPO gradient norm 75 percentile": per75_agradient_norm, 
+                    "Actor PPO gradient norm 25 percentile": per25_agradient_norm, 
+                    "Critic PPO max gradient norm": max_cgradient_norm, 
+                    "Critic PPO mean gradient norm": mean_cgradient_norm, 
+                    "Critic PPO median gradient norm": median_cgradient_norm, 
+                    "Critic PPO min gradient norm": min_cgradient_norm, 
+                    "Critic PPO gradient norm 95 percentile": per95_cgradient_norm, 
+                    "Critic PPO gradient norm 5 percentile": per5_cgradient_norm, 
+                    "Critic PPO gradient norm 75 percentile": per75_cgradient_norm, 
+                    "Critic PPO gradient norm 25 percentile": per25_cgradient_norm, 
+                    "PPO mean action loss": mean_action_loss,
+                    "PPO mean value loss": mean_value_loss,
+                    "PPO median action loss": median_action_loss,
+                    "PPO median value loss": median_value_loss,
+                    "Training steps": time_step, 
                 } 
             ) 
  

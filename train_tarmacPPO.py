@@ -10,7 +10,7 @@ from utils import (
     normStateDict,
     saveActorNetDict,
     render_and_wandb_init,
-    test_ppo_agent,
+    test_tarmac_ppo_agent,
 )
 
 import os
@@ -60,7 +60,6 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
 
     # Initialize actor hidden state
     actor_hidden_state_size = config_dict["TarMAC_PPO_prop"]['actor_hidden_state_size']
-    actor_hidden_state = {k: torch.zeros(1, actor_hidden_state_size).to(device) for k in obs_dict.keys()}
 
     for t in range(nb_time_steps):
 
@@ -68,20 +67,25 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
         if render:
             renderer.render(obs_dict)
 
+
+        #### Passing actor one shot
         # Select action with probabilities
         obs_all = np.array([normStateDict(obs_dict[k], config_dict) for k in obs_dict.keys()]) 
 
-        #actions_and_probs = agent.select_actions(obs_all)
+        actions_and_probs = agent.select_actions(obs_all)
 
-        action_and_prob = {
-            k: agent.select_action(normStateDict(obs_dict[k], config_dict), actor_hidden_state[k])
-            for k in obs_dict.keys()
-        }
-        action = {k: action_and_prob[k][0] for k in obs_dict.keys()}
-        action_prob = {k: action_and_prob[k][1] for k in obs_dict.keys()}
-        next_actor_hidden_state = {k: action_and_prob[k][2] for k in obs_dict.keys()}
+        action = {k: actions_and_probs[0][k] for k in obs_dict.keys()}
+        action_prob = {k: actions_and_probs[1][k] for k in obs_dict.keys()}
 
-        comm = {k: torch.zeros(1, 0).to(device) for k in obs_dict.keys()}
+        #### Passing through actors one by one
+        #action_and_prob = {
+        #    k: agent.select_action(normStateDict(obs_dict[k], config_dict), actor_hidden_state[k])
+        #    for k in obs_dict.keys()
+        #}
+        #action = {k: action_and_prob[k][0] for k in obs_dict.keys()}
+        #action_prob = {k: action_and_prob[k][1] for k in obs_dict.keys()}
+        #next_actor_hidden_state = {k: action_and_prob[k][2] for k in obs_dict.keys()}
+
 
         # Take action and get new transition
         next_obs_dict, rewards_dict, dones_dict, info_dict = env.step(action)
@@ -100,10 +104,7 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
                     state=normStateDict(obs_dict[k], config_dict),
                     action=action[k],
                     a_log_prob=action_prob[k],
-                    comm=comm[k],
-                    actor_hidden=actor_hidden_state[k],
                     reward=rewards_dict[k],
-                    next_hidden=next_actor_hidden_state[k],
                     next_state=normStateDict(next_obs_dict[k], config_dict),
                     done=done,
                 ),
@@ -115,9 +116,6 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
         # Set next state as current state
         obs_dict = next_obs_dict
         
-        # Update actor hidden state
-        actor_hidden_state = next_actor_hidden_state
-
         # New episode, reset environment
         if done:
             print(f"New episode at time {t}")
@@ -142,7 +140,7 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
         # Test policy
         if t % time_steps_test_log == time_steps_test_log - 1:  # Test policy
             print(f"Testing at time {t}")
-            metrics_test = test_ppo_agent(agent, env, config_dict, opt, t)
+            metrics_test = test_tarmac_ppo_agent(agent, env, config_dict, opt, t)
             if log_wandb:
                 wandb_run.log(metrics_test)
             else:
