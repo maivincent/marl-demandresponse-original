@@ -76,6 +76,7 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
 
         action = {k: actions_and_probs[0][k] for k in obs_dict.keys()}
         action_prob = {k: actions_and_probs[1][k] for k in obs_dict.keys()}
+        
 
         #### Passing through actors one by one
         #action_and_prob = {

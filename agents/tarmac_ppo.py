@@ -84,12 +84,11 @@ class TarMAC_PPO:
         with torch.no_grad(): 
             action_prob = self.actor_net(all_state_obs).squeeze(0)  # (Agents, action dims)
         c = Categorical(action_prob.cpu()) 
-        actions = c.sample()        #(Agents, actions)
+        actions = c.sample()        #(Agents, 1)
 
+        action_prob = action_prob.cpu().gather(1, actions) # (Agents, 1)
         actions_np = actions.numpy()
-
-        action_probs_np = action_prob.cpu().numpy()
-        action_probs_np = action_probs_np[:,actions_np[0,:]]
+        action_probs_np = action_prob.numpy()
         return actions_np, action_probs_np
  
     def get_value(self, state): 
@@ -124,8 +123,8 @@ class TarMAC_PPO:
         next_state = torch.tensor(next_state_np, dtype=torch.float).to(self.device)                         # (Time steps, Agents, State dim)
         action = torch.tensor(action_np, dtype=torch.long).to(self.device)                                  # (Time steps, Agents, Action dim)
         old_action_log_prob = torch.tensor(old_action_log_prob_np, dtype=torch.float).to(self.device)       # (Time steps, Agents, Action dim)
-        reward = torch.tensor(reward_np, dtype=torch.long).unsqueeze(2).to(self.device)                     # (Time steps, Agents, 1)
-        done = torch.tensor(done_np, dtype=torch.float).unsqueeze(2).to(self.device)                        # (Time steps, Agents, 1)
+        reward = torch.tensor(reward_np, dtype=torch.float).unsqueeze(2).to(self.device)                     # (Time steps, Agents, 1)
+        done = torch.tensor(done_np, dtype=torch.long).unsqueeze(2).to(self.device)                        # (Time steps, Agents, 1)
 
         num_time_steps, num_agents, _ = state.shape
 
@@ -166,7 +165,6 @@ class TarMAC_PPO:
                 action_prob = self.actor_net(state[index])  # (Batch size, num_agents, state dim) --> (Batch size, num_agents, action_choices * action dim)
 
                 action_prob = action_prob.gather(2, action[index])          # New policy's action probability --> (Batch size, num_agents, action dim)
-  
 
                 ratio = action_prob / old_action_log_prob[index] 
                 clipped_ratio = torch.clamp( 
@@ -196,9 +194,6 @@ class TarMAC_PPO:
                 self.critic_net_optimizer.zero_grad() 
                 value_losses = np.append(value_losses, value_loss.cpu().detach())
                 
-                #print(value_loss)
-
-
                 value_loss.backward() 
                 critic_gradient_norm = nn.utils.clip_grad_norm_( 
                     self.critic_net.parameters(), self.max_grad_norm 
