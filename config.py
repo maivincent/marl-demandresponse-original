@@ -437,8 +437,8 @@ config_dict = {
 	},
 
     "TarMAC_PPO_prop": {
-        "actor_hidden_state_size": 32,   # Size of the hidden state of the GRU in the actor
-        "critic_hidden_layer_size": 32,         # Size of the hidden layers in the critic
+        "actor_hidden_state_size": 64,   # Size of the hidden state of the actor
+        "critic_hidden_layer_size": 64,         # Size of the hidden layers in the critic
 	    "communication_size": 16, 	# Size of the communication message
 	    "key_size": 8, 	# Size of the key/query
 	    "comm_num_hops": 1,			# Number of hops during the communication
