@@ -124,16 +124,16 @@ class TarMAC_Comm(nn.Module):
         )
 
         self.msg_state2state = nn.Sequential(
-            nn.Linear(num_key + num_value, num_key + num_value),
+            nn.Linear(num_states + num_value, num_states + num_value),
             nn.Tanh(),
-            nn.Linear(num_key + num_value, num_states)
+            nn.Linear(num_states + num_value, num_states)
         )
 
     def forward(self, hidden_states):
         # hidden_states: (batch_size, num_agents, num_states)
         for i in range(self.num_hops):
             if i>0:
-                hidden_states = self.msg_state2state(torch.cat([comm, hidden_states], dim=1)) # (batch_size, num_agents, num_states + num_value) -> (batch_size, num_agents, num_states)
+                hidden_states = self.msg_state2state(torch.cat([comm, hidden_states], dim=2)) # (batch_size, num_agents, num_states + num_value) -> (batch_size, num_agents, num_states)
             
             # compute key, value and query
             key = self.hidden2key(hidden_states)        # (batch_size, num_agents, num_key)
