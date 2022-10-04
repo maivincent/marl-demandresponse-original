@@ -291,6 +291,9 @@ def adjust_config_train(opt, config_dict):
         if opt.communication_size != -1:
             print("Setting TarMAC communication_size to {}".format(opt.communication_size))
             config_dict["TarMAC_PPO_prop"]["communication_size"] = opt.communication_size
+        if opt.key_size != -1:
+            print("Setting TarMAC key_size to {}".format(opt.key_size))
+            config_dict["TarMAC_PPO_prop"]["key_size"] = opt.key_size
         if opt.comm_num_hops != -1:
             print("Setting TarMAC comm_num_hops to {}".format(opt.comm_num_hops))
             config_dict["TarMAC_PPO_prop"]["comm_num_hops"] = opt.comm_num_hops

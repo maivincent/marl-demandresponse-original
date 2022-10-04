@@ -408,21 +408,18 @@ def cli_train():
         default=-1,
         help="Size of the internal state vector"
     )
-
     parser.add_argument(
         "--communication_size",
         type=int,
         default=-1,
         help="Size of the communication vector"
     )
-
     parser.add_argument(
         "--tarmac_communication_mode",
         type=str,
         default="config",
         help="Communication mode for tarmac (can be: 'no_comm', 'from_states_rec_att', 'from_states')"
     )
-
     parser.add_argument(
         "--comm_num_hops",  
         type=int,
@@ -444,23 +441,18 @@ def cli_train():
         help="Entropy coefficient"
     )
 
-
-
     parser.add_argument(
         "--eps",
         type=float,
         default=-1,
         help="Epsilon for TarMAC optimizer (RMSProp or Adam)"
     )
-
-
     parser.add_argument(
         "--alpha",
         type=float,
         default=-1,
         help="Alpha for TarMAC optimizer (RMSProp or Adam)"
     )
-
     parser.add_argument(
         "--nb_tarmac_updates",
         type=int,
@@ -493,7 +485,14 @@ def cli_train():
         default = 'config',
         help="Whether to use communications in the actor (False -> should be like PPO)"
     )
- 
+    parser.add_argument(
+        "--key_size",
+        type=int,
+        default=-1,
+        help="Size of the key vector"
+    )
+
+
 ### Training parameters
 
     ### Training parameters
