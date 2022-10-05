@@ -795,6 +795,66 @@ def cli_deploy(agents_dict):
         help="path to which the simulation data is saved as a CSV. If no name is given no saving is done.",
     )
 
+## TarMAC PPO
+
+
+    ## TarMAC PPO agent
+    parser.add_argument(
+        "--actor_hidden_state_size",
+        type=int,
+        default=-1,
+        help="Size of the hidden state of the actor"
+    )
+    parser.add_argument(
+        "--critic_hidden_layer_size",
+        type=int,
+        default=-1,
+        help="Size of the critic's hidden linear layers"
+    )
+    parser.add_argument(
+        "--with_gru",
+        choices = ['True','False', 'config'],
+        default = 'config',
+        help="Whether to use a GRU in the actor"
+    )
+    parser.add_argument(
+        "--with_comm",
+        choices = ['True','False', 'config'],
+        default = 'config',
+        help="Whether to use communications in the actor (False -> should be like PPO)"
+    )
+    parser.add_argument(
+        "--key_size",
+        type=int,
+        default=-1,
+        help="Size of the key vector"
+    )
+    parser.add_argument(
+        "--number_agents_comm_tarmac",
+        type=int,
+        default=-1,
+        help="Number of agents to communicate with using TarMAC"
+    )
+    parser.add_argument(
+        "--tarmac_comm_mode",
+        type=str,
+        default="config",
+        help="Communication mode for tarmac (can be: 'all', 'neighbours', 'none')"
+    )
+
+    parser.add_argument(
+        "--communication_size",
+        type=int,
+        default=-1,
+        help="Size of the communication vector"
+    )
+
+    parser.add_argument(
+        "--comm_num_hops",  
+        type=int,
+        default=-1,
+        help="Number of hops (rounds) for the communication"    
+    )
 
     opt = parser.parse_args()
 

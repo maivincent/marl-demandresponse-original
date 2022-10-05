@@ -297,6 +297,12 @@ def adjust_config_train(opt, config_dict):
         if opt.comm_num_hops != -1:
             print("Setting TarMAC comm_num_hops to {}".format(opt.comm_num_hops))
             config_dict["TarMAC_PPO_prop"]["comm_num_hops"] = opt.comm_num_hops
+        if opt.number_agents_comm_tarmac != -1:
+            print("Setting TarMAC number_agents_comm_tarmac to {}".format(opt.number_agents_comm_tarmac))
+            config_dict["TarMAC_PPO_prop"]["number_agents_comm_tarmac"] = opt.number_agents_comm_tarmac
+        if opt.tarmac_comm_mode != "config":
+            print("Setting tarmac_comm_mode to {}".format(opt.tarmac_comm_mode))
+            config_dict["TarMAC_PPO_prop"]["tarmac_comm_mode"] = opt.tarmac_comm_mode
         if opt.lr_critic != -1:
             print("Setting TarMAC lr_critic to {}".format(opt.lr_critic))
             config_dict["TarMAC_PPO_prop"]["lr_critic"] = opt.lr_critic
@@ -411,6 +417,43 @@ def adjust_config_deploy(opt, config_dict):
         config_dict["DQN_prop"]["network_layers"] = opt.DQNnetwork_layers
     if opt.start_datetime_mode != "config":
         config_dict["default_env_prop"]["start_datetime_mode"] = opt.start_datetime_mode
+
+
+    print("-- TarMAC PPO agent --")
+    ## TarMAC PPO agent
+    if opt.actor_hidden_state_size != -1:
+        print("Setting TarMAC actor_hidden_state_size to {}".format(opt.actor_hidden_state_size))
+        config_dict["TarMAC_PPO_prop"]["actor_hidden_state_size"] = opt.actor_hidden_state_size
+    if opt.communication_size != -1:
+        print("Setting TarMAC communication_size to {}".format(opt.communication_size))
+        config_dict["TarMAC_PPO_prop"]["communication_size"] = opt.communication_size
+    if opt.key_size != -1:
+        print("Setting TarMAC key_size to {}".format(opt.key_size))
+        config_dict["TarMAC_PPO_prop"]["key_size"] = opt.key_size
+    if opt.comm_num_hops != -1:
+        print("Setting TarMAC comm_num_hops to {}".format(opt.comm_num_hops))
+        config_dict["TarMAC_PPO_prop"]["comm_num_hops"] = opt.comm_num_hops
+    if opt.number_agents_comm_tarmac != -1:
+        print("Setting TarMAC number_agents_comm_tarmac to {}".format(opt.number_agents_comm_tarmac))
+        config_dict["TarMAC_PPO_prop"]["number_agents_comm_tarmac"] = opt.number_agents_comm_tarmac
+    if opt.tarmac_comm_mode != "config":
+        print("Setting tarmac_comm_mode to {}".format(opt.tarmac_comm_mode))
+        config_dict["TarMAC_PPO_prop"]["tarmac_comm_mode"] = opt.tarmac_comm_mode
+    if opt.critic_hidden_layer_size != -1:
+        print("Setting TarMAC critic_hidden_layer_size to {}".format(opt.critic_hidden_layer_size))
+        config_dict["TarMAC_PPO_prop"]["critic_hidden_layer_size"] = opt.critic_hidden_layer_size
+    if opt.with_gru != 'config':
+        print("Setting TarMAC with_gru to {}".format(opt.with_gru))
+        if opt.with_gru == "True":
+            config_dict["TarMAC_PPO_prop"]["with_gru"] = True
+        else:
+            config_dict["TarMAC_PPO_prop"]["with_gru"] = False
+    if opt.with_comm != 'config':
+        print("Setting TarMAC with_comm to {}".format(opt.with_comm))
+        if opt.with_comm == "True":
+            config_dict["TarMAC_PPO_prop"]["with_comm"] = True
+        else:
+            config_dict["TarMAC_PPO_prop"]["with_comm"] = False 
 
     ## State
     print("-- Agent observations --")
@@ -598,10 +641,17 @@ def get_random_date_time(start_date_time):
 
 # Multi agent management
 def get_actions(actors, obs_dict):
-    actions = {}
-    for agent_id in actors.keys():
-        actions[agent_id] = actors[agent_id].act(obs_dict)
-    return actions
+    if isinstance(actors, dict):            # One actor per agent 
+        actions = {}
+        for agent_id in actors.keys():
+            actions[agent_id] = actors[agent_id].act(obs_dict)
+        return actions
+    else:                                   # One actor for all agents (may need to change to ensure decentralized - ex: TarMAC_PPO)
+        actions_np = actors.act(obs_dict)
+        actions_dict = {}
+        for agent_id in obs_dict.keys():
+            actions_dict[agent_id] = actions_np[agent_id]
+        return actions_dict
 
 
 def datetime2List(dt):

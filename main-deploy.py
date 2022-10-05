@@ -30,6 +30,7 @@ agents_dict = {
     "GreedyMyopic": GreedyMyopic,
     "MPC": MPCController,
     "MADDPG": DDPGAgent,
+    "TarmacPPO": TarmacPPOAgent,
 }
 
 
@@ -63,16 +64,20 @@ time_steps_log = int(opt.nb_time_steps / opt.nb_logs)
 nb_agents = config_dict["default_env_prop"]["cluster_prop"]["nb_agents"]
 houses = env.cluster.houses
 
-actors = {}
-for house_id in houses.keys():
-    agent_prop = {"id": house_id}
+if opt.agent != "TarmacPPO":
+    actors = {}
+    for house_id in houses.keys():
+        agent_prop = {"id": house_id}
 
-    if opt.actor_name:
-        agent_prop["actor_name"] = opt.actor_name
-        agent_prop["net_seed"] = opt.net_seed
+        if opt.actor_name:
+            agent_prop["actor_name"] = opt.actor_name
+            agent_prop["net_seed"] = opt.net_seed
 
-    actors[house_id] = agents_dict[opt.agent](agent_prop, config_dict, num_state=num_state)
+        actors[house_id] = agents_dict[opt.agent](agent_prop, config_dict, num_state=num_state)
 
+else:
+    agent_prop = {"net_seed" : opt.net_seed, "actor_name" : opt.actor_name}
+    actors = TarmacPPOAgent(agent_prop, config_dict, num_state=num_state)
 
 obs_dict = env.reset()
 
