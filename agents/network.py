@@ -161,6 +161,8 @@ class TarMAC_Comm(nn.Module):
 
     def forward(self, hidden_states):
         # hidden_states: (batch_size, num_agents, num_states)
+        device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
         for i in range(self.num_hops):
             if i>0:
                 hidden_states = self.msg_state2state(torch.cat([comm, hidden_states], dim=2)) # (batch_size, num_agents, num_states + num_value) -> (batch_size, num_agents, num_states)
@@ -170,7 +172,7 @@ class TarMAC_Comm(nn.Module):
             value = self.hidden2value(hidden_states)    # (batch_size, num_agents, num_value)
             query = self.hidden2query(hidden_states)    # (batch_size, num_agents, num_key)
 
-            mask = self.make_masks(hidden_states.shape[1]) # (num_agents, num_agents)
+            mask = self.make_masks(hidden_states.shape[1]).to(device) # (num_agents, num_agents)
             # scores
             scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(self.num_key) # (batch_size, num_agents, num_key) x (batch_size, num_key, num_agents) -> (batch_size, num_agents, num_agents)
             scores = torch.mul(scores, mask) # (batch_size, num_agents, num_agents) * (num_agents, num_agents) -> (batch_size, num_agents, num_agents)
