@@ -26,11 +26,13 @@ class TarMAC_PPO:
         self.with_gru = config_dict["TarMAC_PPO_prop"]['with_gru']
         self.nb_agents = config_dict["default_env_prop"]["cluster_prop"]["nb_agents"]
         self.with_comm = config_dict["TarMAC_PPO_prop"]['with_comm']
+        self.number_agents_comm = config_dict["TarMAC_PPO_prop"]['number_agents_comm_tarmac']
+        self.comm_mode = config_dict["TarMAC_PPO_prop"]['tarmac_comm_mode']
 
         # if True: 
         #    self.actor_net = OldActor(num_state=num_state, num_action=num_action) 
         #    self.critic_net = OldCritic(num_state=num_state) 
-        self.actor_net = TarMAC_Actor(num_obs=num_state, num_key=self.key_size, num_value=self.communication_size, hidden_state_size = self.actor_hidden_state_size, num_action=num_action, num_hops=self.comm_num_hops, with_gru=self.with_gru, with_comm=self.with_comm).to(self.device) 
+        self.actor_net = TarMAC_Actor(num_obs=num_state, num_key=self.key_size, num_value=self.communication_size, hidden_state_size = self.actor_hidden_state_size, num_action=num_action, number_agents_comm=self.number_agents_comm, comm_mode=self.comm_mode, num_hops=self.comm_num_hops, with_gru=self.with_gru, with_comm=self.with_comm).to(self.device) 
         self.critic_net = TarMAC_Critic(num_agents = self.nb_agents, num_obs=num_state, hidden_layer_size=self.critic_hidden_layer_size).to(self.device)
         
         self.batch_size = config_dict["TarMAC_PPO_prop"]["batch_size"] 

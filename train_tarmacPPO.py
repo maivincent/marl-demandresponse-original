@@ -58,9 +58,6 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
     # Get first observation
     obs_dict = env.reset()
 
-    # Initialize actor hidden state
-    actor_hidden_state_size = config_dict["TarMAC_PPO_prop"]['actor_hidden_state_size']
-
     for t in range(nb_time_steps):
 
         # Render observation
@@ -77,17 +74,6 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
         action = {k: actions_and_probs[0][k] for k in obs_dict.keys()}
         action_prob = {k: actions_and_probs[1][k] for k in obs_dict.keys()}
         
-
-        #### Passing through actors one by one
-        #action_and_prob = {
-        #    k: agent.select_action(normStateDict(obs_dict[k], config_dict), actor_hidden_state[k])
-        #    for k in obs_dict.keys()
-        #}
-        #action = {k: action_and_prob[k][0] for k in obs_dict.keys()}
-        #action_prob = {k: action_and_prob[k][1] for k in obs_dict.keys()}
-        #next_actor_hidden_state = {k: action_and_prob[k][2] for k in obs_dict.keys()}
-
-
         # Take action and get new transition
         next_obs_dict, rewards_dict, dones_dict, info_dict = env.step(action)
 
@@ -132,7 +118,6 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
 
         # Log train statistics
         if t % time_steps_train_log == time_steps_train_log - 1:  # Log train statistics
-            # print("Logging stats at time {}".format(t))
             logged_metrics = metrics.log(t, time_steps_train_log)
             if log_wandb:
                 wandb_run.log(logged_metrics)

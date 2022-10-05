@@ -452,6 +452,8 @@ config_dict = {
         "batch_size": 256,
         "with_gru": False,
         "with_comm": True,
+        "number_agents_comm_tarmac": 10,
+        "tarmac_comm_mode": 'neighbours'
     },
     
     "DQN_prop": {

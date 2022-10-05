@@ -5,6 +5,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import json
 import math
+import numpy as np
 
 #%% Classes
 
@@ -99,11 +100,13 @@ class DDPG_Network(nn.Module):
 
 
 class TarMAC_Comm(nn.Module):
-    def __init__(self, num_states, num_key, num_value, num_hops):
+    def __init__(self, num_states, num_key, num_value, num_hops, number_agents_comm, mask_mode):
         super(TarMAC_Comm, self).__init__()
         self.num_states = num_states
         self.num_hops = num_hops
         self.num_key = num_key
+        self.number_agents_comm = number_agents_comm
+        self.mask_mode = mask_mode
 
         self.hidden2key = nn.Sequential(
             nn.Linear(num_states, num_states),
@@ -129,6 +132,33 @@ class TarMAC_Comm(nn.Module):
             nn.Linear(num_states + num_value, num_states)
         )
 
+    def make_masks(self, number_agents):
+        number_agents_comm = self.number_agents_comm
+        if number_agents_comm >= number_agents:
+            number_agents_comm = number_agents - 1
+        if self.mask_mode == 'all':
+            mask = torch.ones(number_agents, number_agents)
+        elif self.mask_mode == 'none':
+            mask = torch.zeros(number_agents, number_agents)
+        elif self.mask_mode == 'neighbours':
+            mask_np = np.zeros((number_agents, number_agents))
+            for i in range(number_agents_comm+1):
+                if i == 0:
+                    mask_np += np.eye(number_agents, k=0)
+                elif i%2 == 1:
+                    k_value = int((i+1)/2)
+                    mask_np += np.eye(number_agents, k=k_value)
+                    mask_np += np.eye(number_agents, k=-number_agents+k_value)
+                else:
+                    k_value = -int(i/2)
+                    mask_np += np.eye(number_agents, k=k_value)
+                    mask_np += np.eye(number_agents, k=number_agents+k_value)
+            mask = torch.from_numpy(mask_np).long()       
+        else:
+            raise ValueError('Unknown TarMAC communication mode')
+        return mask
+
+
     def forward(self, hidden_states):
         # hidden_states: (batch_size, num_agents, num_states)
         for i in range(self.num_hops):
@@ -140,10 +170,12 @@ class TarMAC_Comm(nn.Module):
             value = self.hidden2value(hidden_states)    # (batch_size, num_agents, num_value)
             query = self.hidden2query(hidden_states)    # (batch_size, num_agents, num_key)
 
+            mask = self.make_masks(hidden_states.shape[1]) # (num_agents, num_agents)
             # scores
             scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(self.num_key) # (batch_size, num_agents, num_key) x (batch_size, num_key, num_agents) -> (batch_size, num_agents, num_agents)
-
+            scores = torch.mul(scores, mask) # (batch_size, num_agents, num_agents) * (num_agents, num_agents) -> (batch_size, num_agents, num_agents)
             # softmax + weighted sum
+
             attn = F.softmax(scores, dim=-1)    # (batch_size, num_agents, num_agents)
             comm = torch.matmul(attn, value)   # (batch_size, num_agents, num_agents) x (batch_size, num_agents, num_value) -> (batch_size, num_agents, num_value)
 
@@ -151,7 +183,7 @@ class TarMAC_Comm(nn.Module):
 
 
 class TarMAC_Actor(nn.Module):
-    def __init__(self, num_obs, num_key, num_value, hidden_state_size, num_action, num_hops=1, with_gru=False, with_comm=True):
+    def __init__(self, num_obs, num_key, num_value, hidden_state_size, num_action, number_agents_comm, comm_mode, num_hops=1, with_gru=False, with_comm=True):
         super(TarMAC_Actor, self).__init__()
         self.with_gru = with_gru        # Not implemented yet
         if self.with_gru:
@@ -170,7 +202,7 @@ class TarMAC_Actor(nn.Module):
                 nn.ReLU(),
                 nn.Linear(hidden_state_size, num_action)
             )
-            self.comm = TarMAC_Comm(hidden_state_size, num_key, num_value, num_hops)
+            self.comm = TarMAC_Comm(hidden_state_size, num_key, num_value, num_hops, number_agents_comm, comm_mode)
         else:
             self.hidden2action = nn.Sequential(
                 nn.Linear(hidden_state_size, hidden_state_size),
@@ -178,8 +210,7 @@ class TarMAC_Actor(nn.Module):
                 nn.Linear(hidden_state_size, num_action)
             )
 
-
-    def forward(self, obs, hidden_state = None):
+    def forward(self, obs):
         x = self.obs2hidden(obs)                    # (nb_batch x nb_agents x num_obs) -> (nb_batch x nb_agents x hidden_state_size)
         if self.with_comm:
             communications = self.comm(x)      # (nb_batch x nb_agents x hidden_state_size) -> (nb_batch x nb_agents x num_value)

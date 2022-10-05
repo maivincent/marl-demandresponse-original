@@ -491,6 +491,18 @@ def cli_train():
         default=-1,
         help="Size of the key vector"
     )
+    parser.add_argument(
+        "--number_agents_comm_tarmac",
+        type=int,
+        default=-1,
+        help="Number of agents to communicate with using TarMAC"
+    )
+    parser.add_argument(
+        "--tarmac_comm_mode",
+        type=str,
+        default="config",
+        help="Communication mode for tarmac (can be: 'all', 'neighbours', 'none')"
+    )
 
 
 ### Training parameters
