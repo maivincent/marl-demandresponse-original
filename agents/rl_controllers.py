@@ -103,23 +103,20 @@ class TarmacPPOAgent():
 
         self.seed = agent_properties["net_seed"]
         torch.manual_seed(self.seed)
-        self.actor_net = TarMAC_Actor(num_obs=self.num_state, num_key=self.key_size, num_value=self.communication_size, hidden_state_size=self.actor_hidden_state_size, num_action=num_action, number_agents_comm=self.number_agents_comm, comm_mode=self.comm_mode, num_hops=self.comm_num_hops, with_comm=self.with_comm)
+        self.actor_net = TarMAC_Actor(num_obs=self.num_state, num_key=self.key_size, num_value=self.communication_size, hidden_state_size=self.actor_hidden_state_size, num_action=num_action, number_agents_comm=self.number_agents_comm, comm_mode=self.comm_mode, device=torch.device('cpu'), num_hops=self.comm_num_hops, with_comm=self.with_comm)
         self.actor_net.load_state_dict(torch.load(os.path.join(self.actor_path, 'actor.pth'), map_location=torch.device('cpu')))
         self.actor_net.eval()
 
     def act(self, obs_dict):
         obs_all = np.array([normStateDict(obs_dict[k], self.config_dict) for k in obs_dict.keys()]) 
         obs_all = torch.from_numpy(obs_all).float().unsqueeze(0)
-        print("Obs_all: ", obs_all.shape)
 
         with torch.no_grad():
             action_prob = self.actor_net(obs_all).squeeze(0)
-        print("action_prob: ", action_prob.shape)
 
         c = Categorical(action_prob.cpu()) 
         actions = c.sample()        #(Agents, 1)
         actions_np = actions.numpy()
 
-        print(actions_np)
 
         return actions_np
