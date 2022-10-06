@@ -30,7 +30,7 @@ except ImportError:
 try:
     from hive.envs.madr import MA_DemandResponse_
 except ImportError:
-    AtariEnv = None
+    MARLEnv = None
     
 from hive.utils.registry import registry
 
