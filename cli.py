@@ -501,7 +501,7 @@ def cli_train():
         "--tarmac_comm_mode",
         type=str,
         default="config",
-        help="Communication mode for tarmac (can be: 'all', 'neighbours', 'none')"
+        help="Communication mode for tarmac (can be: 'all', 'neighbours', 'none', 'random_sample')"
     )
 
 
@@ -855,6 +855,8 @@ def cli_deploy(agents_dict):
         default=-1,
         help="Number of hops (rounds) for the communication"    
     )
+
+    
 
     opt = parser.parse_args()
 

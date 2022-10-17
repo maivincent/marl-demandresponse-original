@@ -154,7 +154,15 @@ class TarMAC_Comm(nn.Module):
                     k_value = -int(i/2)
                     mask_np += np.eye(number_agents, k=k_value)
                     mask_np += np.eye(number_agents, k=number_agents+k_value)
-            mask = torch.from_numpy(mask_np).long()       
+            mask = torch.from_numpy(mask_np).long()   
+        elif self.mask_mode == 'random_sample':
+            mask = torch.zeros(number_agents, number_agents)
+            for i in range(number_agents):
+                possible_choices = np.arange(i)
+                possible_choices = np.append(possible_choices, np.arange(i+1, number_agents))
+                random_list = np.random.choice(possible_choices, number_agents_comm, replace=False)
+                mask[i, random_list] = 1   
+                mask[i, i] = 1 
         else:
             raise ValueError('Unknown TarMAC communication mode')
         return mask
