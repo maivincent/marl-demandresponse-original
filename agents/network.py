@@ -1,5 +1,4 @@
 #%% Imports
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -192,20 +191,42 @@ class TarMAC_Comm(nn.Module):
 
         return comm
 
+class GRUNet(nn.Module):
+    def __init__(self, input_dim, hidden_dim, output_dim, n_layers, device):
+        super(GRUNet, self).__init__()
+        self.n_layers = n_layers
+        self.hidden_dim = hidden_dim
+        self.gru = nn.GRU(input_dim, hidden_dim, n_layers, batch_first=True)
+        self.fc = nn.Linear(hidden_dim, output_dim)
+        self.relu = nn.ReLU()
+        self.device = device
+
+    def forward(self, x, hidden):
+        out, h = self.gru(x, hidden)
+        out = self.fc(self.relu(out[:, -1]))
+        return out
+
+    def init_hidden(self, batch_size):
+        weight = next(self.parameters()).data # This is useful to keep the right type of data + device for the hidden state.
+        hidden = weight.new(self.n_layers, batch_size, self.hidden_dim).zero_() # Makes a tensor of zeros *does it need to be passed to the device?*
+        return hidden
 
 class TarMAC_Actor(nn.Module):
-    def __init__(self, num_obs, num_key, num_value, hidden_state_size, num_action, number_agents_comm, comm_mode, device, num_hops=1, with_gru=False, with_comm=True):
+    def __init__(self, num_obs, num_key, num_value, hidden_state_size, num_action, number_agents_comm, comm_mode, device, num_hops=1, with_gru=False, hidden_state_gru_size = 8, with_comm=True):
         super(TarMAC_Actor, self).__init__()
-        self.with_gru = with_gru        # Not implemented yet
-        if self.with_gru:
-            raise NotImplementedError("GRU is not implemented yet")
+        self.with_gru = with_gru
         self.with_comm = with_comm
+        self.num_value = num_value
 
-        self.obs2hidden = nn.Sequential(
-            nn.Linear(num_obs, hidden_state_size),
-            nn.ReLU(),
-            nn.Linear(hidden_state_size, hidden_state_size),
-        )
+        if self.with_gru:
+            self.obs2hidden = GRUNet(num_obs + num_value, hidden_state_gru_size, hidden_state_size, 1, device)
+
+        else:
+            self.obs2hidden = nn.Sequential(
+                nn.Linear(num_obs, hidden_state_size),
+                nn.ReLU(),
+                nn.Linear(hidden_state_size, hidden_state_size),
+            )
 
         if self.with_comm:
             self.comm_hidden2action = nn.Sequential(
@@ -220,34 +241,70 @@ class TarMAC_Actor(nn.Module):
                 nn.ReLU(),
                 nn.Linear(hidden_state_size, num_action)
             )
+        
 
     def forward(self, obs):
-        x = self.obs2hidden(obs)                    # (nb_batch x nb_agents x num_obs) -> (nb_batch x nb_agents x hidden_state_size)
+        if self.with_gru:
+            # obs is memory : (nb_batch x num_lookback x nb_agents x (num_obs + num_comm)) with obs_t and comm_{t-1}
+            nb_batch = obs.shape[0]
+            num_lookback = obs.shape[1]
+            nb_agents = obs.shape[2]
+            init_hidden_gru = self.obs2hidden.init_hidden(nb_batch*nb_agents) # (nb_layers, nb_batch x nb_agents, hidden_state_gru_size)
+            obs = obs.reshape(nb_batch*nb_agents, num_lookback, obs.shape[3]) # (nb_batch x nb_agents, num_lookback, (num_obs + num_comm))
+            x = self.obs2hidden(obs, init_hidden_gru) # (nb_batch x nb_agents x hidden_state_size)
+            x = x.reshape(nb_batch, nb_agents, x.shape[1]) # (nb_batch, nb_agents, hidden_state_size)
+        else:
+            x = self.obs2hidden(obs)                    # (nb_batch x nb_agents x num_obs) -> (nb_batch x nb_agents x hidden_state_size)
         if self.with_comm:
             communications = self.comm(x)      # (nb_batch x nb_agents x hidden_state_size) -> (nb_batch x nb_agents x num_value)
             x = self.comm_hidden2action(torch.cat([x, communications], dim=2)) # (nb_batch x nb_agents x (num_value+num_obs)) -> (nb_batch x nb_agents x num_action)
         else:
+            communications = torch.zeros(x.shape[0], x.shape[1], self.num_value)
             x = self.hidden2action(x)               # (nb_batch x nb_agents x hidden_state_size) -> (nb_batch x nb_agents x num_action)
         action_prob = F.softmax(x, dim=-1)        # (nb_batch x nb_agents x num_action)
-        return action_prob
+        return action_prob, communications
         
                 
 class TarMAC_Critic(nn.Module):
-    def __init__(self, num_agents, num_obs, hidden_layer_size):
+    def __init__(self, num_agents, num_obs, hidden_layer_size, num_value, device, with_gru = False, gru_hidden_state_size=8):
         super(TarMAC_Critic, self).__init__()
 
-        self.critic = nn.Sequential(
-            nn.Linear(num_obs*num_agents, hidden_layer_size),
-            nn.ReLU(),
-            nn.Linear(hidden_layer_size, hidden_layer_size),
-            nn.ReLU(),
-            nn.Linear(hidden_layer_size, num_agents)
-        )
+        self.with_gru = with_gru
+        self.num_agents = num_agents
+
+        if self.with_gru:
+            self.gru = GRUNet(num_obs + num_value, gru_hidden_state_size, hidden_layer_size, 1, device)
+            self.mlp = nn.Sequential(
+                nn.Linear(hidden_layer_size*num_agents, hidden_layer_size),
+                nn.ReLU(),
+                nn.Linear(hidden_layer_size, num_agents)
+            )
+        else:
+            self.critic = nn.Sequential(
+                nn.Linear(num_obs*num_agents, hidden_layer_size),
+                nn.ReLU(),
+                nn.Linear(hidden_layer_size, hidden_layer_size),
+                nn.ReLU(),
+                nn.Linear(hidden_layer_size, num_agents)
+            )
 
 
     def forward(self, obs):
-        # obs: (nb_batch x num_agents x num_obs)
-        x = obs.reshape(obs.shape[0], -1) # (nb_batch x num_agents x num_obs) -> (nb_batch x (num_agents x num_obs))
-        value = self.critic(x) # (nb_batch x (num_agents x num_obs)) -> (nb_batch x num_agents)
+        if self.with_gru:
+            # obs: (nb_batch x num_lookback x nb_agents x (num_obs + num_comm))
+            print(obs.shape)
+            nb_batch = obs.shape[0]
+            num_lookback = obs.shape[1]
+            nb_agents = obs.shape[2]
+            init_hidden_gru = self.gru.init_hidden(nb_batch*nb_agents) # (nb_layers, nb_batch x nb_agents, hidden_state_gru_size)
+            obs = obs.reshape(nb_batch*nb_agents, num_lookback, obs.shape[3]) # (nb_batch x nb_agents, num_lookback, (num_obs + num_comm))
+            x = self.gru(obs, init_hidden_gru) # (nb_batch x nb_agents, hidden_state_size)
+            x = x.reshape(nb_batch, nb_agents, x.shape[1]) # (nb_batch, nb_agents, hidden_state_size)
+            x = x.reshape(nb_batch, -1) # (nb_batch, nb_agents x hidden_state_size)
+            value = self.mlp(x) # (nb_batch, nb_agents)
+        else:
+            # obs: (nb_batch x num_agents x num_obs)
+            x = obs.reshape(obs.shape[0], -1) # (nb_batch x num_agents x num_obs) -> (nb_batch x (num_agents x num_obs))
+            value = self.critic(x) # (nb_batch x (num_agents x num_obs)) -> (nb_batch x num_agents)
 
         return value

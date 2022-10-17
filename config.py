@@ -451,6 +451,7 @@ config_dict = {
         "ppo_update_time": 10,
         "batch_size": 256,
         "with_gru": False,
+        "nb_lookback": 10,
         "with_comm": True,
         "number_agents_comm_tarmac": 10,
         "tarmac_comm_mode": 'neighbours'

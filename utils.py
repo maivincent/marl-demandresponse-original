@@ -891,6 +891,54 @@ def test_tarmac_ppo_agent(agent, env, config_dict, opt, tr_time_steps):
         "Training steps": tr_time_steps,
     } 
 
+
+def test_tarmac_ppo_agent_gru(agent, env, config_dict, opt, tr_time_steps):
+    """
+    Test ppo agent on an episode of nb_test_timesteps, with
+    """
+    env = deepcopy(env)
+    cumul_avg_reward = 0
+    cumul_temp_error = 0
+    cumul_signal_error = 0
+
+    nb_time_steps_test = config_dict["training_prop"]["nb_time_steps_test"]
+    communication_size = config_dict["TarMAC_PPO_prop"]["communication_size"]
+
+    obs_dict = env.reset()
+    comm_all = np.zeros((env.nb_agents, communication_size))
+
+    with torch.no_grad():
+        for t in range(nb_time_steps_test):
+
+            obs_all = np.array([normStateDict(obs_dict[k], config_dict) for k in obs_dict.keys()]) 
+
+            agent.record(obs_all, comm_all)
+            actions_and_comms = agent.select_actions_gru()
+            comm_all = actions_and_comms[2]
+
+            action = {k: actions_and_comms[0][k] for k in obs_dict.keys()}
+
+            obs_dict, rewards_dict, dones_dict, info_dict = env.step(action)
+            for i in range(env.nb_agents):
+                cumul_avg_reward += rewards_dict[i] / env.nb_agents
+                cumul_temp_error += (
+                    np.abs(obs_dict[i]["house_temp"] - obs_dict[i]["house_target_temp"])
+                    / env.nb_agents
+                )
+                cumul_signal_error += np.abs(
+                    obs_dict[i]["reg_signal"] - obs_dict[i]["cluster_hvac_power"]
+                ) / (env.nb_agents**2)
+    mean_avg_return = cumul_avg_reward / nb_time_steps_test
+    mean_temp_error = cumul_temp_error / nb_time_steps_test
+    mean_signal_error = cumul_signal_error / nb_time_steps_test
+
+    return {
+        "Mean test return": mean_avg_return,
+        "Test mean temperature error": mean_temp_error,
+        "Test mean signal error": mean_signal_error,
+        "Training steps": tr_time_steps,
+    } 
+
 def test_tarmac_agent(agent, env, config_dict, opt, tr_time_steps, init_states, init_comms, init_masks):
     "Test tarmac agent on an episode of nb_test_timesteps"
     env = deepcopy(env)

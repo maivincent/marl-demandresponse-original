@@ -24,6 +24,7 @@ class TarMAC_PPO:
         self.comm_num_hops = config_dict["TarMAC_PPO_prop"]['comm_num_hops']
         self.critic_hidden_layer_size = config_dict["TarMAC_PPO_prop"]['critic_hidden_layer_size']
         self.with_gru = config_dict["TarMAC_PPO_prop"]['with_gru']
+        self.nb_lookback = config_dict["TarMAC_PPO_prop"]['nb_lookback']
         self.nb_agents = config_dict["default_env_prop"]["cluster_prop"]["nb_agents"]
         self.with_comm = config_dict["TarMAC_PPO_prop"]['with_comm']
         self.number_agents_comm = config_dict["TarMAC_PPO_prop"]['number_agents_comm_tarmac']
@@ -33,7 +34,7 @@ class TarMAC_PPO:
         #    self.actor_net = OldActor(num_state=num_state, num_action=num_action) 
         #    self.critic_net = OldCritic(num_state=num_state) 
         self.actor_net = TarMAC_Actor(num_obs=num_state, num_key=self.key_size, num_value=self.communication_size, hidden_state_size = self.actor_hidden_state_size, num_action=num_action, number_agents_comm=self.number_agents_comm, comm_mode=self.comm_mode, device=self.device, num_hops=self.comm_num_hops, with_gru=self.with_gru, with_comm=self.with_comm).to(self.device) 
-        self.critic_net = TarMAC_Critic(num_agents = self.nb_agents, num_obs=num_state, hidden_layer_size=self.critic_hidden_layer_size).to(self.device)
+        self.critic_net = TarMAC_Critic(num_agents = self.nb_agents, num_obs=num_state, hidden_layer_size=self.critic_hidden_layer_size, num_value=self.communication_size, device = self.device, with_gru = self.with_gru).to(self.device)
         
         self.batch_size = config_dict["TarMAC_PPO_prop"]["batch_size"] 
         self.ppo_update_time = config_dict["TarMAC_PPO_prop"]["ppo_update_time"] 
@@ -44,6 +45,10 @@ class TarMAC_PPO:
         self.lr_critic = config_dict["TarMAC_PPO_prop"]["lr_critic"] 
         self.wandb_run = wandb_run 
         self.log_wandb = not opt.no_wandb 
+
+        if self.with_gru:
+            self.memory = torch.zeros(self.nb_lookback, self.nb_agents, self.communication_size + num_state).to(self.device)
+
 
         # Initialize buffer
         self.buffer = {}
@@ -68,23 +73,33 @@ class TarMAC_PPO:
             self.critic_net.parameters(), self.lr_critic 
         ) 
  
-    def select_action(self, obs): 
-        " Select action for one agent given its obs"
-        obs = torch.from_numpy(obs).float().unsqueeze(0).to(self.device) 
+    def select_actions_gru(self):
+        " Select actions for all agents at once"
 
         with torch.no_grad(): 
-            action_prob = self.actor_net(obs) 
-
+            action_prob, communications = self.actor_net(self.memory.unsqueeze(0)) # (1, num_agents, num_actions) and (1, num_agents, num_communications)
+            action_prob = action_prob.squeeze(0) # (Agents, action dims)
+            communications = communications.squeeze(0) # (Agents, communications dims)
         c = Categorical(action_prob.cpu()) 
-        action = c.sample() 
-        return action.item(), action_prob[:, action.item()].item()
+        actions = c.sample()        #(Agents, 1)
+
+        action_prob = action_prob.cpu().gather(1, actions) # (Agents, 1)
+        actions_np = actions.numpy()
+        action_probs_np = action_prob.numpy()
+        communications_np = communications.cpu().numpy()
+        return actions_np, action_probs_np, communications_np  
+
+    def get_memory(self, agent):
+        return self.memory[:, agent, :].to('cpu').numpy()     # nb_lookback, num_state + num_communications
+
 
     def select_actions(self, all_state_obs):
         " Select actions for all agents at once"
         all_state_obs = torch.from_numpy(all_state_obs).float().unsqueeze(0).to(self.device) # (1, Agents, State dims)
 
         with torch.no_grad(): 
-            action_prob = self.actor_net(all_state_obs).squeeze(0)  # (Agents, action dims)
+            action_prob, _ = self.actor_net(all_state_obs)
+            action_prob = action_prob.squeeze(0)  # (Agents, action dims)
         c = Categorical(action_prob.cpu()) 
         actions = c.sample()        #(Agents, 1)
 
@@ -92,6 +107,12 @@ class TarMAC_PPO:
         actions_np = actions.numpy()
         action_probs_np = action_prob.numpy()
         return actions_np, action_probs_np
+
+    def record(self, obs_all, prev_comm_all):
+        to_save_np = np.concatenate((obs_all, prev_comm_all), axis=1)
+        to_save = torch.from_numpy(to_save_np).float().unsqueeze(0).to(self.device)          # obs_all: (Agents, State dims),  prev_comm_all: (Agents, Comm dims), to_save: (1, Agents, State dims + Comm dims)
+        self.memory = torch.cat((self.memory, to_save), dim=0)      # append to memory
+        self.memory = self.memory[-self.nb_lookback:]              # keep only last nb_lookback observations
  
     def get_value(self, state): 
 
@@ -111,8 +132,6 @@ class TarMAC_PPO:
         self.buffer[agent].append(transition) 
  
     def update(self, time_step): 
-
-
         # Organizing elements from buffer
         state_np = np.array([[self.buffer[agent][time_step].state for agent in range(self.nb_agents)] for time_step in range(len(self.buffer[0]))])
         next_state_np = np.array([[self.buffer[agent][time_step].next_state for agent in range(self.nb_agents)] for time_step in range(len(self.buffer[0]))])
@@ -121,14 +140,18 @@ class TarMAC_PPO:
         reward_np = np.array([[self.buffer[agent][time_step].reward for agent in range(self.nb_agents)] for time_step in range(len(self.buffer[0]))])
         done_np = np.array([[self.buffer[agent][time_step].done for agent in range(self.nb_agents)] for time_step in range(len(self.buffer[0]))])
         
-        state = torch.tensor(state_np, dtype=torch.float).to(self.device)                                   # (Time steps, Agents, State dim)
-        next_state = torch.tensor(next_state_np, dtype=torch.float).to(self.device)                         # (Time steps, Agents, State dim)
+        state = torch.tensor(state_np, dtype=torch.float).to(self.device)                                   # (Time steps, Agents, State dim) (if gru, Time steps, agents, nb_lookback, state + comm)   
+        next_state = torch.tensor(next_state_np, dtype=torch.float).to(self.device)                         # (Time steps, Agents, State dim) (if gru, Time steps, agents, nb_lookback, state + comm)
+        if self.with_gru:
+            state = state.transpose(1,2)                                                                        # (Time steps, nb_lookback, Agents, state + com)
+            next_state = next_state.transpose(1,2)                                                              # (Time steps, nb_lookback, Agents, state + com)
         action = torch.tensor(action_np, dtype=torch.long).to(self.device)                                  # (Time steps, Agents, Action dim)
         old_action_log_prob = torch.tensor(old_action_log_prob_np, dtype=torch.float).to(self.device)       # (Time steps, Agents, Action dim)
         reward = torch.tensor(reward_np, dtype=torch.float).unsqueeze(2).to(self.device)                     # (Time steps, Agents, 1)
         done = torch.tensor(done_np, dtype=torch.long).unsqueeze(2).to(self.device)                        # (Time steps, Agents, 1)
 
-        num_time_steps, num_agents, _ = state.shape
+
+        num_time_steps, num_agents, _ = action.shape
 
         # Compute the returns
         Gt = torch.zeros(1, num_agents, 1).to(self.device)     # Artificially initialize the return tensor
@@ -164,8 +187,7 @@ class TarMAC_PPO:
 
                 # epoch iteration, PPO core 
 
-                action_prob = self.actor_net(state[index])  # (Batch size, num_agents, state dim) --> (Batch size, num_agents, action_choices * action dim)
-
+                action_prob, communication = self.actor_net(state[index])  # (Batch size, num_agents, state dim) --> (Batch size, num_agents, action_choices * action dim)
                 action_prob = action_prob.gather(2, action[index])          # New policy's action probability --> (Batch size, num_agents, action dim)
 
                 ratio = action_prob / old_action_log_prob[index] 

@@ -11,6 +11,7 @@ from utils import (
     saveActorNetDict,
     render_and_wandb_init,
     test_tarmac_ppo_agent,
+    test_tarmac_ppo_agent_gru
 )
 
 import os
@@ -35,6 +36,8 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
     nb_tr_logs = config_dict["training_prop"]["nb_tr_logs"]
     nb_test_logs = config_dict["training_prop"]["nb_test_logs"]
     nb_inter_saving_actor = config_dict["training_prop"]["nb_inter_saving_actor"]    
+    with_gru = config_dict["TarMAC_PPO_prop"]["with_gru"]
+    communication_size = config_dict["TarMAC_PPO_prop"]["communication_size"]
 
     # Initialize render, if applicable
     if render:
@@ -46,6 +49,7 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
     Transition = namedtuple(
         "Transition", ["state", "action", "a_log_prob", "reward", "next_state", "done"]
     )
+
     time_steps_per_episode = int(nb_time_steps / nb_tr_episodes)
     time_steps_per_epoch = int(nb_time_steps / nb_tr_epochs)
     time_steps_train_log = int(nb_time_steps / nb_tr_logs)
@@ -57,6 +61,7 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
 
     # Get first observation
     obs_dict = env.reset()
+    comm_all = np.zeros((env.nb_agents, communication_size))
 
     for t in range(nb_time_steps):
 
@@ -68,11 +73,17 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
         #### Passing actor one shot
         # Select action with probabilities
         obs_all = np.array([normStateDict(obs_dict[k], config_dict) for k in obs_dict.keys()]) 
+        if with_gru:
+            memory = {k: agent.get_memory(k) for k in obs_dict.keys()}
+            agent.record(obs_all, comm_all)
+            actions_and_comms = agent.select_actions_gru()
+            comm_all = actions_and_comms[2]
 
-        actions_and_probs = agent.select_actions(obs_all)
+        else:
+            actions_and_comms = agent.select_actions(obs_all)
 
-        action = {k: actions_and_probs[0][k] for k in obs_dict.keys()}
-        action_prob = {k: actions_and_probs[1][k] for k in obs_dict.keys()}
+        action = {k: actions_and_comms[0][k] for k in obs_dict.keys()}
+        action_prob = {k: actions_and_comms[1][k] for k in obs_dict.keys()}
         
         # Take action and get new transition
         next_obs_dict, rewards_dict, dones_dict, info_dict = env.step(action)
@@ -86,17 +97,30 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
 
         # Storing in replay buffer
         for k in obs_dict.keys():
-            agent.store_transition(
-                Transition(
-                    state=normStateDict(obs_dict[k], config_dict),
-                    action=action[k],
-                    a_log_prob=action_prob[k],
-                    reward=rewards_dict[k],
-                    next_state=normStateDict(next_obs_dict[k], config_dict),
-                    done=done,
-                ),
-                k
-            )
+            if with_gru:
+                agent.store_transition(
+                    Transition(
+                        state=memory[k],
+                        action=action[k],
+                        a_log_prob=action_prob[k],
+                        reward=rewards_dict[k],
+                        next_state=agent.get_memory(k),
+                        done=done,
+                    ),
+                    k
+                )
+            else:
+                agent.store_transition(
+                    Transition(
+                        state=normStateDict(obs_dict[k], config_dict),
+                        action=action[k],
+                        a_log_prob=action_prob[k],
+                        reward=rewards_dict[k],
+                        next_state=normStateDict(next_obs_dict[k], config_dict),
+                        done=done,
+                    ),
+                    k
+                )               
             # Update metrics
             metrics.update(k, next_obs_dict, rewards_dict, env)
 
@@ -126,7 +150,10 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
         # Test policy
         if t % time_steps_test_log == time_steps_test_log - 1:  # Test policy
             print(f"Testing at time {t}")
-            metrics_test = test_tarmac_ppo_agent(agent, env, config_dict, opt, t)
+            if with_gru:
+                metrics_test = test_tarmac_ppo_agent_gru(agent, env, config_dict, opt, t)
+            else:
+                metrics_test = test_tarmac_ppo_agent(agent, env, config_dict, opt, t)
             if log_wandb:
                 wandb_run.log(metrics_test)
             else:
