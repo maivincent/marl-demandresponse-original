@@ -856,6 +856,12 @@ def cli_deploy(agents_dict):
         help="Number of hops (rounds) for the communication"    
     )
 
+    parser.add_argument(
+        "--nb_lookback",  
+        type=int,
+        default=-1,
+        help="Number of steps looking back with the RNN"    
+    )
     
 
     opt = parser.parse_args()

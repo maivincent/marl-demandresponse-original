@@ -282,6 +282,7 @@ def adjust_config_train(opt, config_dict):
             print("Setting TarMAC batch_size to {}".format(opt.batch_size))
             config_dict["TarMAC_prop"]["tarmac_batch_size"] = opt.batch_size
 
+
     elif agent == "tarmac_ppo":
         print("-- TarMAC PPO agent --")
     ## TarMAC PPO agent
@@ -348,6 +349,9 @@ def adjust_config_train(opt, config_dict):
                 config_dict["TarMAC_PPO_prop"]["with_comm"] = True
             else:
                 config_dict["TarMAC_PPO_prop"]["with_comm"] = False        
+        if opt.nb_lookback != -1:
+            print("Setting TarMAC nb_lookback to {}".format(opt.nb_lookback))
+            config_dict["TarMAC_prop"]["nb_lookback"] = opt.nb_lookback
 
     ### Training process
     if opt.nb_inter_saving_actor != -1:
@@ -454,6 +458,9 @@ def adjust_config_deploy(opt, config_dict):
             config_dict["TarMAC_PPO_prop"]["with_comm"] = True
         else:
             config_dict["TarMAC_PPO_prop"]["with_comm"] = False 
+    if opt.nb_lookback != -1:
+        print("Setting TarMAC nb_lookback to {}".format(opt.nb_lookback))
+        config_dict["TarMAC_prop"]["nb_lookback"] = opt.nb_lookback
 
     ## State
     print("-- Agent observations --")
