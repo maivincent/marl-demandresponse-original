@@ -504,6 +504,13 @@ def cli_train():
         help="Communication mode for tarmac (can be: 'all', 'neighbours', 'none', 'random_sample')"
     )
 
+    parser.add_argument(
+        "--nb_lookback",  
+        type=int,
+        default=-1,
+        help="Number of steps looking back with the RNN"    
+    )
+    
 
 ### Training parameters
 
