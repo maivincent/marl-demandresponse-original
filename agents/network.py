@@ -6,6 +6,7 @@ import torch.nn.functional as F
 import json
 import math
 import numpy as np
+from utils import MaskedSoftmax
 
 #%% Classes
 
@@ -182,14 +183,13 @@ class TarMAC_Comm(nn.Module):
             query = self.hidden2query(hidden_states)    # (batch_size, num_agents, num_key)
 
             mask = self.make_masks(hidden_states.shape[1]).to(self.device) # (num_agents, num_agents)
-            # scores
             scores = torch.matmul(query, key.transpose(-2, -1)) / math.sqrt(self.num_key) # (batch_size, num_agents, num_key) x (batch_size, num_key, num_agents) -> (batch_size, num_agents, num_agents)
-            scores = torch.mul(scores, mask) # (batch_size, num_agents, num_agents) * (num_agents, num_agents) -> (batch_size, num_agents, num_agents)
+            #scores = torch.mul(scores, mask) # (batch_size, num_agents, num_agents) * (num_agents, num_agents) -> (batch_size, num_agents, num_agents)
+            #scores = scores.masked_fill(mask == 0, -10**15)
             # softmax + weighted sum
 
-            attn = F.softmax(scores, dim=-1)    # (batch_size, num_agents, num_agents)
+            attn = MaskedSoftmax(scores, mask, dim=-1)    # (batch_size, num_agents, num_agents)
             comm = torch.matmul(attn, value)   # (batch_size, num_agents, num_agents) x (batch_size, num_agents, num_value) -> (batch_size, num_agents, num_value)
-
         return comm
 
 

@@ -1236,3 +1236,11 @@ def house_solar_gain(date_time, window_area, shading_coeff):
 
     solar_gain = window_area * shading_coeff * solar_cooling_load
     return solar_gain
+
+
+def MaskedSoftmax(x, mask, dim=-1):
+    x = x - torch.max(x, dim=dim, keepdim=True)[0]
+    x = torch.exp(x) * mask
+    x = x / torch.sum(x, dim=dim, keepdim=True)
+    x[torch.isnan(x)] = 0
+    return x
