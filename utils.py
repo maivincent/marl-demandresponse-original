@@ -157,6 +157,9 @@ def adjust_config_train(opt, config_dict):
     if opt.agents_comm_mode != "config":
         print("Setting agents_comm_mode to {}".format(opt.agents_comm_mode))
         config_dict["default_env_prop"]["cluster_prop"]["agents_comm_mode"] = opt.agents_comm_mode
+    if opt.comm_defect_prob != -1:
+        print("Setting comm_defect_prob to {}".format(opt.comm_defect_prob))
+        config_dict["default_env_prop"]["cluster_prop"]["comm_defect_prob"] = opt.comm_defect_prob
     
     agent = opt.agent_type
     if agent == "ppo":
@@ -303,6 +306,12 @@ def adjust_config_train(opt, config_dict):
         if opt.tarmac_comm_mode != "config":
             print("Setting tarmac_comm_mode to {}".format(opt.tarmac_comm_mode))
             config_dict["TarMAC_PPO_prop"]["tarmac_comm_mode"] = opt.tarmac_comm_mode
+        if opt.tarmac_comm_mode != "config":
+            print("Setting tarmac_comm_mode to {}".format(opt.tarmac_comm_mode))
+            config_dict["TarMAC_PPO_prop"]["tarmac_comm_mode"] = opt.tarmac_comm_mode
+        if opt.tarmac_comm_defect_prob != -1:
+            print("Setting tarmac_comm_defect_prob to {}".format(opt.tarmac_comm_defect_prob))
+            config_dict["TarMAC_PPO_prop"]["tarmac_comm_defect_prob"] = opt.tarmac_comm_defect_prob
         if opt.lr_critic != -1:
             print("Setting TarMAC lr_critic to {}".format(opt.lr_critic))
             config_dict["TarMAC_PPO_prop"]["lr_critic"] = opt.lr_critic
@@ -406,6 +415,9 @@ def adjust_config_deploy(opt, config_dict):
         config_dict["default_env_prop"]["cluster_prop"][
             "agents_comm_mode"
         ] = opt.agents_comm_mode
+    if opt.comm_defect_prob != -1:
+        print("Setting comm_defect_prob to {}".format(opt.comm_defect_prob))
+        config_dict["default_env_prop"]["cluster_prop"]["comm_defect_prob"] = opt.comm_defect_prob
     if opt.layers_actor != "config":
         config_dict["PPO_prop"]["actor_layers"] = opt.layers_actor
     if opt.layers_critic != "config":
@@ -438,7 +450,10 @@ def adjust_config_deploy(opt, config_dict):
         config_dict["TarMAC_PPO_prop"]["number_agents_comm_tarmac"] = opt.number_agents_comm_tarmac
     if opt.tarmac_comm_mode != "config":
         print("Setting tarmac_comm_mode to {}".format(opt.tarmac_comm_mode))
-        config_dict["TarMAC_PPO_prop"]["tarmac_comm_mode"] = opt.tarmac_comm_mode
+        config_dict["TarMAC_PPO_prop"]["tarmac_comm_mode"] = opt.tarmac_comm_mode        
+    if opt.tarmac_comm_defect_prob != -1:
+        print("Setting tarmac_comm_defect_prob to {}".format(opt.tarmac_comm_defect_prob))
+        config_dict["TarMAC_PPO_prop"]["tarmac_comm_defect_prob"] = opt.tarmac_comm_defect_prob
     if opt.critic_hidden_layer_size != -1:
         print("Setting TarMAC critic_hidden_layer_size to {}".format(opt.critic_hidden_layer_size))
         config_dict["TarMAC_PPO_prop"]["critic_hidden_layer_size"] = opt.critic_hidden_layer_size

@@ -101,7 +101,7 @@ class DDPG_Network(nn.Module):
 
 
 class TarMAC_Comm(nn.Module):
-    def __init__(self, num_states, num_key, num_value, num_hops, number_agents_comm, mask_mode, device):
+    def __init__(self, num_states, num_key, num_value, num_hops, number_agents_comm, mask_mode, comm_defect_prob, device):
         super(TarMAC_Comm, self).__init__()
         self.num_states = num_states
         self.num_hops = num_hops
@@ -109,6 +109,7 @@ class TarMAC_Comm(nn.Module):
         self.number_agents_comm = number_agents_comm
         self.mask_mode = mask_mode
         self.device = device
+        self.comm_defect_prob = comm_defect_prob
 
         self.hidden2key = nn.Sequential(
             nn.Linear(num_states, num_states),
@@ -155,6 +156,10 @@ class TarMAC_Comm(nn.Module):
                     k_value = -int(i/2)
                     mask_np += np.eye(number_agents, k=k_value)
                     mask_np += np.eye(number_agents, k=number_agents+k_value)
+            for i in range(number_agents):
+                rand = np.random.rand()
+                if rand < self.comm_defect_prob:
+                    mask_np[:, i] = 0
             mask = torch.from_numpy(mask_np).long()   
         elif self.mask_mode == 'random_sample':
             mask = torch.zeros(number_agents, number_agents)
@@ -194,7 +199,7 @@ class TarMAC_Comm(nn.Module):
 
 
 class TarMAC_Actor(nn.Module):
-    def __init__(self, num_obs, num_key, num_value, hidden_state_size, num_action, number_agents_comm, comm_mode, device, num_hops=1, with_gru=False, with_comm=True):
+    def __init__(self, num_obs, num_key, num_value, hidden_state_size, num_action, number_agents_comm, comm_mode, device, comm_defect_prob = 0, num_hops=1, with_gru=False, with_comm=True):
         super(TarMAC_Actor, self).__init__()
         self.with_gru = with_gru        # Not implemented yet
         if self.with_gru:
@@ -213,7 +218,7 @@ class TarMAC_Actor(nn.Module):
                 nn.ReLU(),
                 nn.Linear(hidden_state_size, num_action)
             )
-            self.comm = TarMAC_Comm(hidden_state_size, num_key, num_value, num_hops, number_agents_comm, comm_mode, device)
+            self.comm = TarMAC_Comm(hidden_state_size, num_key, num_value, num_hops, number_agents_comm, comm_mode, comm_defect_prob, device)
         else:
             self.hidden2action = nn.Sequential(
                 nn.Linear(hidden_state_size, hidden_state_size),
@@ -251,3 +256,4 @@ class TarMAC_Critic(nn.Module):
         value = self.critic(x) # (nb_batch x (num_agents x num_obs)) -> (nb_batch x num_agents)
 
         return value
+# %%

@@ -280,6 +280,7 @@ config_dict = {
             "nb_agents": 1,  # Number of houses
             "nb_agents_comm": 10,  # Maximal number of houses a single house communicates with
             "agents_comm_mode": "neighbours",  # Communication mode
+            "comm_defect_prob": 0,  # Probability of a communication link being broken
             "agents_comm_parameters": {
                 "neighbours_2D": {
                     "row_size": 5,  # Row side length
@@ -453,7 +454,8 @@ config_dict = {
         "with_gru": False,
         "with_comm": True,
         "number_agents_comm_tarmac": 10,
-        "tarmac_comm_mode": 'neighbours'
+        "tarmac_comm_mode": 'neighbours',
+        "tarmac_comm_defect_prob": 0.0 # Probability of a TarMAC communication defect
     },
     
     "DQN_prop": {

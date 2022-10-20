@@ -601,17 +601,25 @@ class SingleHouse(object):
             )
             self.disp_count = 0
 
-    def message(self):
+    def message(self, empty=False):
         """
         Message sent by the house to other agents
         """
-        message = {
-            "current_temp_diff_to_target": self.current_temp - self.target_temp,
-            "hvac_seconds_since_off": self.hvac.seconds_since_off,
-            "hvac_curr_consumption": self.hvac.power_consumption(),
-            "hvac_max_consumption": self.hvac.max_consumption,
-        }
-
+        if not empty:
+            message = {
+                "current_temp_diff_to_target": self.current_temp - self.target_temp,
+                "hvac_seconds_since_off": self.hvac.seconds_since_off,
+                "hvac_curr_consumption": self.hvac.power_consumption(),
+                "hvac_max_consumption": self.hvac.max_consumption,
+            }
+        else:
+            message = {
+                "current_temp_diff_to_target": 0,
+                "hvac_seconds_since_off": 0,
+                "hvac_curr_consumption": 0,
+                "hvac_max_consumption": 0,
+            }
+        print(message)
         return message
 
     def update_temperature(self, od_temp, time_step, date_time):
@@ -917,11 +925,18 @@ class ClusterHouses(object):
             else:
                 ids_houses_messages = self.agent_communicators[house_id]
 
+
             cluster_obs_dict[house_id]["message"] = []
             for id_house_message in ids_houses_messages:
-                cluster_obs_dict[house_id]["message"].append(
-                    self.houses[id_house_message].message()
-                )
+                if np.random.rand() > self.cluster_prop["comm_defect_prob"]:
+                    cluster_obs_dict[house_id]["message"].append(
+                        self.houses[id_house_message].message()
+                    )
+                else:
+                    cluster_obs_dict[house_id]["message"].append(
+                        self.houses[id_house_message].message(empty=True)
+                    )
+
         return cluster_obs_dict
 
     def step(self, date_time, actions_dict, time_step):

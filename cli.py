@@ -254,6 +254,13 @@ def cli_train():
         help="Mode for choosing the agents to communicate with. Can be 'neighbours' or 'random'",
     )
 
+    parser.add_argument(
+        "--comm_defect_prob",
+        type=float,
+        default=-1,
+        help="Probability of a communication link to be broken.",
+    )
+
     ## PPO agent
 
     # NN architecture
@@ -503,6 +510,12 @@ def cli_train():
         default="config",
         help="Communication mode for tarmac (can be: 'all', 'neighbours', 'none', 'random_sample')"
     )
+    parser.add_argument(
+        "--tarmac_comm_defect_prob",
+        type=float,
+        default=-1,
+        help="Probability of a communication link to be broken.",
+    )
 
 
 ### Training parameters
@@ -709,6 +722,13 @@ def cli_deploy(agents_dict):
     )
 
     parser.add_argument(
+        "--comm_defect_prob",
+        type=float,
+        default=-1,
+        help="Probability of a communication link to be broken.",
+    )
+
+    parser.add_argument(
         "--layers_critic",
         type=str,
         default="config",
@@ -841,7 +861,12 @@ def cli_deploy(agents_dict):
         default="config",
         help="Communication mode for tarmac (can be: 'all', 'neighbours', 'none')"
     )
-
+    parser.add_argument(
+        "--tarmac_comm_defect_prob",
+        type=float,
+        default=-1,
+        help="Probability of a communication link to be broken.",
+    )
     parser.add_argument(
         "--communication_size",
         type=int,
