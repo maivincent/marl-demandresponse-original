@@ -303,9 +303,6 @@ def adjust_config_train(opt, config_dict):
         if opt.number_agents_comm_tarmac != -1:
             print("Setting TarMAC number_agents_comm_tarmac to {}".format(opt.number_agents_comm_tarmac))
             config_dict["TarMAC_PPO_prop"]["number_agents_comm_tarmac"] = opt.number_agents_comm_tarmac
-        ### TEST to avoid running for no reason
-        if config_dict["TarMAC_PPO_prop"]["number_agents_comm_tarmac"] >= config_dict["default_env_prop"]["cluster_prop"]["nb_agents"]:
-            raise ValueError("number_agents_comm_tarmac {} is greater than or equal to nb_agents {}".format(config_dict["TarMAC_PPO_prop"]["number_agents_comm_tarmac"], config_dict["default_env_prop"]["cluster_prop"]["nb_agents"]))
         if opt.tarmac_comm_mode != "config":
             print("Setting tarmac_comm_mode to {}".format(opt.tarmac_comm_mode))
             config_dict["TarMAC_PPO_prop"]["tarmac_comm_mode"] = opt.tarmac_comm_mode
@@ -360,6 +357,10 @@ def adjust_config_train(opt, config_dict):
                 config_dict["TarMAC_PPO_prop"]["with_comm"] = True
             else:
                 config_dict["TarMAC_PPO_prop"]["with_comm"] = False        
+
+       ### TEST to avoid running for no reason
+        if config_dict["TarMAC_PPO_prop"]["number_agents_comm_tarmac"] >= config_dict["default_env_prop"]["cluster_prop"]["nb_agents"] and config_dict["TarMAC_PPO_prop"]["with_comm"]:
+            raise ValueError("number_agents_comm_tarmac {} is greater than or equal to nb_agents {}".format(config_dict["TarMAC_PPO_prop"]["number_agents_comm_tarmac"], config_dict["default_env_prop"]["cluster_prop"]["nb_agents"]))
 
     ### Training process
     if opt.nb_inter_saving_actor != -1:
