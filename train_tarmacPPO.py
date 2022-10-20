@@ -68,9 +68,7 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
         #### Passing actor one shot
         # Select action with probabilities
         obs_all = np.array([normStateDict(obs_dict[k], config_dict) for k in obs_dict.keys()]) 
-
         actions_and_probs = agent.select_actions(obs_all)
-
         action = {k: actions_and_probs[0][k] for k in obs_dict.keys()}
         action_prob = {k: actions_and_probs[1][k] for k in obs_dict.keys()}
         

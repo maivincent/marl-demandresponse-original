@@ -156,11 +156,14 @@ class TarMAC_Comm(nn.Module):
                     k_value = -int(i/2)
                     mask_np += np.eye(number_agents, k=k_value)
                     mask_np += np.eye(number_agents, k=number_agents+k_value)
-            for i in range(number_agents):
-                rand = np.random.rand()
-                if rand < self.comm_defect_prob:
-                    mask_np[:, i] = 0
-            mask = torch.from_numpy(mask_np).long()   
+            if self.comm_defect_prob > 0:
+                for i in range(number_agents):
+                    rand = np.random.rand()
+                    if rand < self.comm_defect_prob:
+                        mask_np[:, i] = 0
+            mask = torch.from_numpy(mask_np).long() 
+            mask.fill_diagonal_(1)          # The agent should always be able to speak to itself.
+  
         elif self.mask_mode == 'random_sample':
             mask = torch.zeros(number_agents, number_agents)
             for i in range(number_agents):
@@ -176,8 +179,6 @@ class TarMAC_Comm(nn.Module):
 
     def forward(self, hidden_states):
         # hidden_states: (batch_size, num_agents, num_states)
-        
-
         for i in range(self.num_hops):
             if i>0:
                 hidden_states = self.msg_state2state(torch.cat([comm, hidden_states], dim=2)) # (batch_size, num_agents, num_states + num_value) -> (batch_size, num_agents, num_states)
