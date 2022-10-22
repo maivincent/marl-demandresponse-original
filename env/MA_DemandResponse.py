@@ -619,7 +619,6 @@ class SingleHouse(object):
                 "hvac_curr_consumption": 0,
                 "hvac_max_consumption": 0,
             }
-        print(message)
         return message
 
     def update_temperature(self, od_temp, time_step, date_time):
