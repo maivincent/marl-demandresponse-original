@@ -279,6 +279,13 @@ def cli_train():
         help="Mode for choosing the agents to communicate with. Can be 'neighbours' or 'random'",
     )
 
+    parser.add_argument(
+        "--comm_defect_prob",
+        type=float,
+        default=-1,
+        help="Probability of a communication link to be broken.",
+    )
+
     ## PPO agent
 
     # NN architecture
@@ -411,6 +418,129 @@ def cli_train():
     parser.add_argument(
         "--buffer_capacity", type=int, default=-1, help="Replay buffer capacity"
     )
+        
+    parser.add_argument(
+        "--lr",
+        type=float,
+        default=-1,
+        help="Learning rate (for DQN and TarMAC)"
+    )
+
+## TarMAC agent (only those which were not already added in PPO or DQN agent)
+    parser.add_argument(
+        "--recurrent_policy",
+        choices = ['True','False'],
+        default = 'True',
+        help="Whether to use a recurrent policy"
+    )
+
+    parser.add_argument(
+        "--state_size",
+        type=int,
+        default=-1,
+        help="Size of the internal state vector"
+    )
+    parser.add_argument(
+        "--communication_size",
+        type=int,
+        default=-1,
+        help="Size of the communication vector"
+    )
+    parser.add_argument(
+        "--tarmac_communication_mode",
+        type=str,
+        default="config",
+        help="Communication mode for tarmac (can be: 'no_comm', 'from_states_rec_att', 'from_states')"
+    )
+    parser.add_argument(
+        "--comm_num_hops",  
+        type=int,
+        default=-1,
+        help="Number of hops (rounds) for the communication"    
+    )
+
+    parser.add_argument(
+        "--value_loss_coef",
+        type=float,
+        default=-1,
+        help="Value loss coefficient"
+    )
+
+    parser.add_argument(
+        "--entropy_coef",
+        type=float,
+        default=-1,
+        help="Entropy coefficient"
+    )
+
+    parser.add_argument(
+        "--eps",
+        type=float,
+        default=-1,
+        help="Epsilon for TarMAC optimizer (RMSProp or Adam)"
+    )
+    parser.add_argument(
+        "--alpha",
+        type=float,
+        default=-1,
+        help="Alpha for TarMAC optimizer (RMSProp or Adam)"
+    )
+    parser.add_argument(
+        "--nb_tarmac_updates",
+        type=int,
+        default=-1,
+        help="Number of updates for TarMAC"
+    )
+
+    ## TarMAC PPO agent
+    parser.add_argument(
+        "--actor_hidden_state_size",
+        type=int,
+        default=-1,
+        help="Size of the hidden state of the actor"
+    )
+    parser.add_argument(
+        "--critic_hidden_layer_size",
+        type=int,
+        default=-1,
+        help="Size of the critic's hidden linear layers"
+    )
+    parser.add_argument(
+        "--with_gru",
+        choices = ['True','False', 'config'],
+        default = 'config',
+        help="Whether to use a GRU in the actor"
+    )
+    parser.add_argument(
+        "--with_comm",
+        choices = ['True','False', 'config'],
+        default = 'config',
+        help="Whether to use communications in the actor (False -> should be like PPO)"
+    )
+    parser.add_argument(
+        "--key_size",
+        type=int,
+        default=-1,
+        help="Size of the key vector"
+    )
+    parser.add_argument(
+        "--number_agents_comm_tarmac",
+        type=int,
+        default=-1,
+        help="Number of agents to communicate with using TarMAC"
+    )
+    parser.add_argument(
+        "--tarmac_comm_mode",
+        type=str,
+        default="config",
+        help="Communication mode for tarmac (can be: 'all', 'neighbours', 'none', 'random_sample')"
+    )
+    parser.add_argument(
+        "--tarmac_comm_defect_prob",
+        type=float,
+        default=-1,
+        help="Probability of a communication link to be broken.",
+    )
 
     parser.add_argument("--DQN_lr", type=float, default=-1, help="Learning rate")
 
@@ -419,42 +549,42 @@ def cli_train():
     parser.add_argument(
         "--nb_tr_episodes",
         type=int,
-        default=1000,
+        default=-1,
         help="Number of episodes (environment resets) for training",
     )
 
     parser.add_argument(
         "--nb_tr_epochs",
         type=int,
-        default=20,
+        default=-1,
         help="Number of epochs (policy updates) for training",
     )
 
     parser.add_argument(
         "--nb_tr_logs",
         type=int,
-        default=100,
+        default=-1,
         help="Number of logging points for training stats",
     )
 
     parser.add_argument(
         "--nb_test_logs",
         type=int,
-        default=100,
+        default=-1,
         help="Number of logging points for testing stats (and thus, testing sessions)",
     )
 
     parser.add_argument(
         "--nb_time_steps",
         type=int,
-        default=1000000,
+        default=-1,
         help="Total number of time steps",
     )
 
     parser.add_argument(
         "--nb_time_steps_test",
         type=int,
-        default=50000,
+        default=-1,
         help="Total number of time steps in an episode at test time",
     )
 
@@ -623,6 +753,13 @@ def cli_deploy(agents_dict):
     )
 
     parser.add_argument(
+        "--comm_defect_prob",
+        type=float,
+        default=-1,
+        help="Probability of a communication link to be broken.",
+    )
+
+    parser.add_argument(
         "--layers_critic",
         type=str,
         default="config",
@@ -726,6 +863,73 @@ def cli_deploy(agents_dict):
         help="path to which the simulation data is saved as a CSV. If no name is given no saving is done.",
     )
 
+## TarMAC PPO
+
+
+    ## TarMAC PPO agent
+    parser.add_argument(
+        "--actor_hidden_state_size",
+        type=int,
+        default=-1,
+        help="Size of the hidden state of the actor"
+    )
+    parser.add_argument(
+        "--critic_hidden_layer_size",
+        type=int,
+        default=-1,
+        help="Size of the critic's hidden linear layers"
+    )
+    parser.add_argument(
+        "--with_gru",
+        choices = ['True','False', 'config'],
+        default = 'config',
+        help="Whether to use a GRU in the actor"
+    )
+    parser.add_argument(
+        "--with_comm",
+        choices = ['True','False', 'config'],
+        default = 'config',
+        help="Whether to use communications in the actor (False -> should be like PPO)"
+    )
+    parser.add_argument(
+        "--key_size",
+        type=int,
+        default=-1,
+        help="Size of the key vector"
+    )
+    parser.add_argument(
+        "--number_agents_comm_tarmac",
+        type=int,
+        default=-1,
+        help="Number of agents to communicate with using TarMAC"
+    )
+    parser.add_argument(
+        "--tarmac_comm_mode",
+        type=str,
+        default="config",
+        help="Communication mode for tarmac (can be: 'all', 'neighbours', 'none')"
+    )
+    parser.add_argument(
+        "--tarmac_comm_defect_prob",
+        type=float,
+        default=-1,
+        help="Probability of a communication link to be broken.",
+    )
+    parser.add_argument(
+        "--communication_size",
+        type=int,
+        default=-1,
+        help="Size of the communication vector"
+    )
+
+    parser.add_argument(
+        "--comm_num_hops",  
+        type=int,
+        default=-1,
+        help="Number of hops (rounds) for the communication"    
+    )
+
+    
 
     opt = parser.parse_args()
 

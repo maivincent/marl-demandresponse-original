@@ -8,7 +8,7 @@ import os
 from time import perf_counter
 import wandb 
 import numpy as np 
-from agents.network import Actor, Critic, OldActor, OldCritic 
+from agents.network import Actor, Critic
 import pprint
  
 class PPO: 

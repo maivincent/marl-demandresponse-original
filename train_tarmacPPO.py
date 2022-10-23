@@ -2,7 +2,7 @@
 
 from config import config_dict
 from cli import cli_train
-from agents.ppo import PPO
+from agents.tarmac_ppo import TarMAC_PPO
 from env.MA_DemandResponse import MADemandResponseEnv
 from metrics import Metrics
 from utils import (
@@ -10,7 +10,7 @@ from utils import (
     normStateDict,
     saveActorNetDict,
     render_and_wandb_init,
-    test_ppo_agent,
+    test_tarmac_ppo_agent,
 )
 
 import os
@@ -18,12 +18,14 @@ import random
 import numpy as np
 from collections import namedtuple
 import wandb
+import torch
 
 #%% Functions
 
 
-def train_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run):
+def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run):
 
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     id_rng = np.random.default_rng()
     unique_ID = str(int(id_rng.random() * 1000000))
 
@@ -44,12 +46,13 @@ def train_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run):
     Transition = namedtuple(
         "Transition", ["state", "action", "a_log_prob", "reward", "next_state", "done"]
     )
-    time_steps_per_episode = int(nb_time_steps/nb_tr_episodes)
-    time_steps_per_epoch = int(nb_time_steps/nb_tr_epochs)
-    time_steps_train_log = int(nb_time_steps/nb_tr_logs)
-    time_steps_test_log = int(nb_time_steps/nb_test_logs)
-    time_steps_per_saving_actor = int(nb_time_steps/(nb_inter_saving_actor+1))
-
+    time_steps_per_episode = int(nb_time_steps / nb_tr_episodes)
+    time_steps_per_epoch = int(nb_time_steps / nb_tr_epochs)
+    time_steps_train_log = int(nb_time_steps / nb_tr_logs)
+    time_steps_test_log = int(nb_time_steps / nb_test_logs)
+    time_steps_per_saving_actor = int(
+        nb_time_steps / (nb_inter_saving_actor + 1)
+    )
     metrics = Metrics()
 
     # Get first observation
@@ -61,14 +64,14 @@ def train_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run):
         if render:
             renderer.render(obs_dict)
 
-        # Select action with probabilities
-        action_and_prob = {
-            k: agent.select_action(normStateDict(obs_dict[k], config_dict))
-            for k in obs_dict.keys()
-        }
-        action = {k: action_and_prob[k][0] for k in obs_dict.keys()}
-        action_prob = {k: action_and_prob[k][1] for k in obs_dict.keys()}
 
+        #### Passing actor one shot
+        # Select action with probabilities
+        obs_all = np.array([normStateDict(obs_dict[k], config_dict) for k in obs_dict.keys()]) 
+        actions_and_probs = agent.select_actions(obs_all)
+        action = {k: actions_and_probs[0][k] for k in obs_dict.keys()}
+        action_prob = {k: actions_and_probs[1][k] for k in obs_dict.keys()}
+        
         # Take action and get new transition
         next_obs_dict, rewards_dict, dones_dict, info_dict = env.step(action)
 
@@ -83,12 +86,12 @@ def train_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run):
         for k in obs_dict.keys():
             agent.store_transition(
                 Transition(
-                    normStateDict(obs_dict[k], config_dict),
-                    action[k],
-                    action_prob[k],
-                    rewards_dict[k],
-                    normStateDict(next_obs_dict[k], config_dict),
-                    done,
+                    state=normStateDict(obs_dict[k], config_dict),
+                    action=action[k],
+                    a_log_prob=action_prob[k],
+                    reward=rewards_dict[k],
+                    next_state=normStateDict(next_obs_dict[k], config_dict),
+                    done=done,
                 ),
                 k
             )
@@ -97,7 +100,7 @@ def train_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run):
 
         # Set next state as current state
         obs_dict = next_obs_dict
-
+        
         # New episode, reset environment
         if done:
             print(f"New episode at time {t}")
@@ -113,7 +116,6 @@ def train_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run):
 
         # Log train statistics
         if t % time_steps_train_log == time_steps_train_log - 1:  # Log train statistics
-            # print("Logging stats at time {}".format(t))
             logged_metrics = metrics.log(t, time_steps_train_log)
             if log_wandb:
                 wandb_run.log(logged_metrics)
@@ -122,7 +124,7 @@ def train_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run):
         # Test policy
         if t % time_steps_test_log == time_steps_test_log - 1:  # Test policy
             print(f"Testing at time {t}")
-            metrics_test = test_ppo_agent(agent, env, config_dict, opt, t)
+            metrics_test = test_tarmac_ppo_agent(agent, env, config_dict, opt, t)
             if log_wandb:
                 wandb_run.log(metrics_test)
             else:
@@ -155,5 +157,5 @@ if __name__ == "__main__":
     render, log_wandb, wandb_run = render_and_wandb_init(opt, config_dict)
     random.seed(opt.env_seed)
     env = MADemandResponseEnv(config_dict)
-    agent = PPO(config_dict, opt)
-    train_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
+    agent = TarMAC_PPO(config_dict, opt)
+    train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
