@@ -408,7 +408,7 @@ class HVAC(object):
         self.COP = hvac_properties["COP"]
         self.cooling_capacity = hvac_properties["cooling_capacity"]
         self.latent_cooling_fraction = hvac_properties["latent_cooling_fraction"]
-        self.lockout_duration = hvac_properties["lockout_duration"]
+        self.lockout_duration = hvac_properties["lockout_duration"] + random.randint(-10,10)
         self.turned_on = False
         self.lockout = False
         self.seconds_since_off = self.lockout_duration
