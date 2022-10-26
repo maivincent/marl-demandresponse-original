@@ -1,4 +1,5 @@
 # from apt import ProblemResolver
+from ast import Break
 from cmath import nan
 from env import *
 from agents import *
@@ -98,7 +99,7 @@ cumul_squared_max_error_temp = 0
 actions = get_actions(actors, obs_dict)
 t1_start = time.process_time() 
 
-
+graph_log = pd.DataFrame(columns=['timestep','signal','consumption'])
 
 
 
@@ -121,7 +122,15 @@ for i in range(nb_time_steps):
         row = pd.DataFrame({"temp_diff":temp_diff, "temp_err":temp_err, "air_temp":air_temp, "mass_temp":mass_temp,"target_temp":target_temp, "OD_temp":OD_temp, "signal": signal, "consumption":consumption}, index=[config_dict["default_env_prop"]["time_step"]*i])
         df_metrics = pd.concat([df_metrics,row])
         
-
+    if i >= 5000 and i<=5200:
+        df = pd.DataFrame(obs_dict).transpose()
+        signal = df["reg_signal"][0]
+        consumption = df["cluster_hvac_power"][0]
+        new_row = {'timestep':i, 'signal':signal, 'consumption':consumption}
+        #append row to the dataframe
+        graph_log = graph_log.append(new_row, ignore_index = True)
+    if i>5200:
+        break
     if opt.render and i >= opt.render_after:
         renderer.render(obs_dict)
     max_temp_error_houses = 0
@@ -203,7 +212,8 @@ for i in range(nb_time_steps):
         print("Time step: {}".format(i))
         t1_stop = time.process_time()
         print("Elapsed time for {}% of steps: {} seconds.".format(int(np.round(float(i)/nb_time_steps*100)), int(t1_stop - t1_start))) 
-
+graph_log.set_index("timestep")
+graph_log.to_csv("plot.csv")
 rmse_sig_per_ag = np.sqrt(cumul_squared_error_sig/(nb_time_steps-opt.start_stats_from))/env.nb_agents
 rmse_temp = np.sqrt(cumul_squared_error_temp/((nb_time_steps-opt.start_stats_from)*env.nb_agents))
 rms_max_error_temp = np.sqrt(cumul_squared_max_error_temp/(nb_time_steps-opt.start_stats_from))
