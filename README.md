@@ -2,9 +2,8 @@
 
 This is the original version of the code that was used to produce the results of the Multi-Agent Reinforcement Learning for Fast-Timescale Demand Response of Residential Loads  [paper](https://arxiv.org/abs/2301.02593).
 
-A better documented, maintained, and refactored version of the code is available here: [https://github.com/ALLabMTL/marl-demandresponse](https://github.com/ALLabMTL/marl-demandresponse)
+The officially maintained version of the code is refactored and better documented, and available here: [https://github.com/ALLabMTL/marl-demandresponse](https://github.com/ALLabMTL/marl-demandresponse)
 
-You may need to remove all wandb calls if
 
 ## To install the code
 Dependencies:
