@@ -5,8 +5,7 @@ This is the original version of the code that was used to produce the results of
 The officially maintained version of the code is refactored and better documented, and available here: [https://github.com/ALLabMTL/marl-demandresponse](https://github.com/ALLabMTL/marl-demandresponse)
 
 
-## To install the code
-Dependencies:
+## Dependencies:
 
   - ray-rllib
   - numpy
