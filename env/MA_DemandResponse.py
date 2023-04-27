@@ -627,7 +627,7 @@ class SingleHouse(object):
                 message["hvac_latent_cooling_fraction"] = self.hvac.latent_cooling_fraction
         else:
             message = {
-                "current_temp_diff_to_target": 0
+                "current_temp_diff_to_target": 0,
                 "hvac_seconds_since_off": 0,
                 "hvac_curr_consumption": 0,
                 "hvac_max_consumption": 0,
