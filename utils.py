@@ -27,81 +27,90 @@ def render_and_wandb_init(opt, config_dict):
 def adjust_config_train(opt, config_dict):
     """Changes configuration of config_dict based on args."""
 
-    ### Environment
+    print("Configuration elements changed by the CLI:")
+### Environment
+    print(" -- General environment properties --")
     if opt.nb_agents != -1:
         config_dict["default_env_prop"]["cluster_prop"]["nb_agents"] = opt.nb_agents
+        print("Setting nb_agents to {}".format(opt.nb_agents))
     if opt.time_step != -1:
         config_dict["default_env_prop"]["time_step"] = opt.time_step
+        print("Setting time_step to {}".format(opt.time_step))
 
-    ## Reward
+## Reward
+    print(" -- Reward properties --")
     if opt.alpha_temp != -1:
+        print("Setting alpha_temp to {}".format(opt.alpha_temp))
         config_dict["default_env_prop"]["reward_prop"]["alpha_temp"] = opt.alpha_temp
     if opt.alpha_sig != -1:
+        print("Setting alpha_sig to {}".format(opt.alpha_sig))
         config_dict["default_env_prop"]["reward_prop"]["alpha_sig"] = opt.alpha_sig
     if opt.temp_penalty_mode != "config":
-        config_dict["default_env_prop"]["reward_prop"][
-            "temp_penalty_mode"
-        ] = opt.temp_penalty_mode
+        print("Setting temp_penalty_mode to {}".format(opt.temp_penalty_mode))
+        config_dict["default_env_prop"]["reward_prop"]["temp_penalty_mode"] = opt.temp_penalty_mode
     if opt.alpha_ind_L2 != -1:
-        config_dict["default_env_prop"]["reward_prop"]["temp_penalty_parameters"][
-            "mixture"
-        ]["alpha_ind_L2"] = opt.alpha_ind_L2
+        print("Setting alpha_ind_L2 to {}".format(opt.alpha_ind_L2))
+        config_dict["default_env_prop"]["reward_prop"]["temp_penalty_parameters"]["mixture"]["alpha_ind_L2"] = opt.alpha_ind_L2
     if opt.alpha_common_L2 != -1:
-        config_dict["default_env_prop"]["reward_prop"]["temp_penalty_parameters"][
-            "mixture"
-        ]["alpha_common_L2"] = opt.alpha_common_L2
+        print("Setting alpha_common_L2 to {}".format(opt.alpha_common_L2))
+        config_dict["default_env_prop"]["reward_prop"]["temp_penalty_parameters"]["mixture"]["alpha_common_L2"] = opt.alpha_common_L2
     if opt.alpha_common_max != -1:
-        config_dict["default_env_prop"]["reward_prop"]["temp_penalty_parameters"][
-            "mixture"
-        ]["alpha_common_max"] = opt.alpha_common_max
+        print("Setting alpha_common_max to {}".format(opt.alpha_common_max))
+        config_dict["default_env_prop"]["reward_prop"]["temp_penalty_parameters"]["mixture"]["alpha_common_max"] = opt.alpha_common_max
 
-    ## Simulator
-    # Outdoors
+## Simulator
+# Outdoors
+    print("-- Outdoors environment --")
     if opt.OD_temp_mode != "config":
+        print("Setting OD_temp_mode to {}".format(opt.OD_temp_mode))
         config_dict["default_env_prop"]["cluster_prop"]["temp_mode"] = opt.OD_temp_mode
     config_dict["default_house_prop"]["solar_gain_bool"] = not opt.no_solar_gain
-    # House and HVAC
+    print("Setting solar_gain_bool to {}".format(not opt.no_solar_gain))
+# House and HVAC
+    print("-- HVAC properties --")
     if opt.cooling_capacity != -1:
+        print("Setting cooling_capacity to {}".format(opt.cooling_capacity))
         config_dict["default_hvac_prop"]["cooling_capacity"] = opt.cooling_capacity
     if opt.lockout_duration != -1:
+        print("Setting lockout_duration to {}".format(opt.lockout_duration))
         config_dict["default_hvac_prop"]["lockout_duration"] = opt.lockout_duration
-    # Noise
+# Noise
+    print("-- Noise properties --")
     if opt.house_noise_mode != "config":
+        print("Setting house_noise_mode to {}".format(opt.house_noise_mode))
         config_dict["noise_house_prop"]["noise_mode"] = opt.house_noise_mode
     if opt.house_noise_mode_test == "train":
-        config_dict["noise_house_prop_test"]["noise_mode"] = config_dict[
-            "noise_house_prop"
-        ]["noise_mode"]
+        print("Setting house_noise_mode_test to {}".format(config_dict["noise_house_prop"]["noise_mode"]))
+        config_dict["noise_house_prop_test"]["noise_mode"] = config_dict["noise_house_prop"]["noise_mode"]
     else:
+        print("Setting house_noise_mode_test to {}".format(opt.house_noise_mode_test))
         config_dict["noise_house_prop_test"]["noise_mode"] = opt.house_noise_mode_test
     if opt.hvac_noise_mode != "config":
+        print("Setting hvac_noise_mode to {}".format(opt.hvac_noise_mode))
         config_dict["noise_hvac_prop"]["noise_mode"] = opt.hvac_noise_mode
     if opt.hvac_lockout_noise != -1:
   
         config_dict["default_hvac_prop"]["lockout_noise"] = opt.hvac_lockout_noise 
     if opt.hvac_noise_mode_test == "train":
-        config_dict["noise_hvac_prop_test"]["noise_mode"] = config_dict[
-            "noise_hvac_prop_test"
-        ]["noise_mode"]
+        print("Setting hvac_noise_mode_test to {}".format(config_dict["noise_hvac_prop_test"]["noise_mode"]))
+        config_dict["noise_hvac_prop_test"]["noise_mode"] = config_dict["noise_hvac_prop_test"]["noise_mode"]
     else:
+        print("Setting hvac_noise_mode_test to {}".format(opt.hvac_noise_mode_test))
         config_dict["noise_hvac_prop_test"]["noise_mode"] = opt.hvac_noise_mode_test
 
-    ## Signal
+## Signal
+    print("-- Signal --")
     if opt.signal_mode != "config":
-        config_dict["default_env_prop"]["power_grid_prop"][
-            "signal_mode"
-        ] = opt.signal_mode
+        print("Setting signal_mode to {}".format(opt.signal_mode))
+        config_dict["default_env_prop"]["power_grid_prop"]["signal_mode"] = opt.signal_mode
     if opt.base_power_mode != "config":
-        config_dict["default_env_prop"]["power_grid_prop"][
-            "base_power_mode"
-        ] = opt.base_power_mode
-    config_dict["default_env_prop"]["power_grid_prop"][
-        "artificial_ratio"
-    ] = opt.artificial_signal_ratio
+        print("Setting base_power_mode to {}".format(opt.base_power_mode))
+        config_dict["default_env_prop"]["power_grid_prop"]["base_power_mode"] = opt.base_power_mode
+    config_dict["default_env_prop"]["power_grid_prop"]["artificial_ratio"] = opt.artificial_signal_ratio
+    print("Setting artificial_ratio to {}".format(opt.artificial_signal_ratio))
     if opt.artificial_signal_ratio_range != -1:
-        config_dict["default_env_prop"]["power_grid_prop"][
-            "artificial_signal_ratio_range"
-        ] = opt.artificial_signal_ratio_range
+        print("Setting artificial_signal_ratio_range to {}".format(opt.artificial_signal_ratio_range))
+        config_dict["default_env_prop"]["power_grid_prop"]["artificial_signal_ratio_range"] = opt.artificial_signal_ratio_range
 
     ## State
     if opt.state_solar_gain != "config":
@@ -166,106 +175,240 @@ def adjust_config_train(opt, config_dict):
     ### Agent
 
     ## Agent communication constraints
-
+    print("-- Agent communication constraints --")
     if opt.nb_agents_comm != -1:
-        config_dict["default_env_prop"]["cluster_prop"][
-            "nb_agents_comm"
-        ] = opt.nb_agents_comm
+        print("Setting nb_agents_comm to {}".format(opt.nb_agents_comm))
+        config_dict["default_env_prop"]["cluster_prop"]["nb_agents_comm"] = opt.nb_agents_comm
     if opt.agents_comm_mode != "config":
-        config_dict["default_env_prop"]["cluster_prop"][
-            "agents_comm_mode"
-        ] = opt.agents_comm_mode
-
+        print("Setting agents_comm_mode to {}".format(opt.agents_comm_mode))
+        config_dict["default_env_prop"]["cluster_prop"]["agents_comm_mode"] = opt.agents_comm_mode
+    if opt.comm_defect_prob != -1:
+        print("Setting comm_defect_prob to {}".format(opt.comm_defect_prob))
+        config_dict["default_env_prop"]["cluster_prop"]["comm_defect_prob"] = opt.comm_defect_prob
+    
+    agent = opt.agent_type
+    if agent == "ppo":
+        print("-- PPO agent --")
     ## PPO agent
     # NN architecture
-    if opt.layers_actor != "config":
-        config_dict["PPO_prop"]["actor_layers"] = opt.layers_actor
-    if opt.layers_critic != "config":
-        config_dict["PPO_prop"]["critic_layers"] = opt.layers_critic
-    if opt.layers_both != "config":
-        config_dict["PPO_prop"]["actor_layers"] = opt.layers_both
-        config_dict["PPO_prop"]["critic_layers"] = opt.layers_both
+        if opt.layers_actor != "config":
+            print("Setting PPO layers_actor to {}".format(opt.layers_actor))
+            config_dict["PPO_prop"]["actor_layers"] = opt.layers_actor
+        if opt.layers_critic != "config":
+            print("Setting PPO layers_critic to {}".format(opt.layers_critic))
+            config_dict["PPO_prop"]["critic_layers"] = opt.layers_critic
+        if opt.layers_both != "config":
+            print("Setting PPO layers_both to {}".format(opt.layers_both))
+            config_dict["PPO_prop"]["actor_layers"] = opt.layers_both
+            config_dict["PPO_prop"]["critic_layers"] = opt.layers_both
     # NN optimization
-    if opt.batch_size != -1:
-        config_dict["PPO_prop"]["batch_size"] = opt.batch_size
-    if opt.lr_critic != -1:
-        config_dict["PPO_prop"]["lr_critic"] = opt.lr_critic
-    if opt.lr_actor != -1:
-        config_dict["PPO_prop"]["lr_actor"] = opt.lr_actor
-    if opt.lr_both != -1:
-        config_dict["PPO_prop"]["lr_critic"] = opt.lr_both
-        config_dict["PPO_prop"]["lr_actor"] = opt.lr_both
-        if opt.lr_actor != -1 or opt.lr_critic != -1:
-            raise ValueError(
-                "Potential conflict: both lr_both and lr_actor or lr_critic were set in the CLI"
-            )
-
-    ## DDPG agent
-    # NN architecture
-    if opt.layers_actor != "config":
-        config_dict["DDPG_prop"]["actor_layers"] = opt.layers_actor
-    if opt.layers_critic != "config":
-        config_dict["DDPG_prop"]["critic_layers"] = opt.layers_critic
-    if opt.layers_both != "config":
-        config_dict["DDPG_prop"]["actor_layers"] = opt.layers_both
-        config_dict["DDPG_prop"]["critic_layers"] = opt.layers_both
-    # NN optimization
-    if opt.batch_size != -1:
-        config_dict["DDPG_prop"]["batch_size"] = opt.batch_size
-    if opt.lr_critic != -1:
-        config_dict["DDPG_prop"]["lr_critic"] = opt.lr_critic
-    if opt.lr_actor != -1:
-        config_dict["DDPG_prop"]["lr_actor"] = opt.lr_actor
-    if opt.lr_both != -1:
-        config_dict["DDPG_prop"]["lr_critic"] = opt.lr_both
-        config_dict["DDPG_prop"]["lr_actor"] = opt.lr_both
-        if opt.lr_actor != -1 or opt.lr_critic != -1:
-            raise ValueError(
-                "Potential conflict: both lr_both and lr_actor or lr_critic were set in the CLI"
-            )
-    if opt.gumbel_softmax_tau != -1:
-        config_dict["DDPG_prop"]["gumbel_softmax_tau"] = opt.gumbel_softmax_tau
-    if opt.tau != -1:
-        config_dict["DDPG_prop"]["soft_tau"] = opt.tau
-    if opt.tau != -1:
-        config_dict["DDPG_prop"]["DDPG_shared"] = opt.DDPG_shared
-
+        if opt.batch_size != -1:
+            print("Setting PPO batch_size to {}".format(opt.batch_size))
+            config_dict["PPO_prop"]["batch_size"] = opt.batch_size
+        if opt.lr_critic != -1:
+            print("Setting PPO lr_critic to {}".format(opt.lr_critic))
+            config_dict["PPO_prop"]["lr_critic"] = opt.lr_critic
+        if opt.lr_actor != -1:
+            print("Setting PPO lr_actor to {}".format(opt.lr_actor))
+            config_dict["PPO_prop"]["lr_actor"] = opt.lr_actor
+        if opt.lr_both != -1:
+            print("Setting PPO lr_both to {}".format(opt.lr_both))
+            config_dict["PPO_prop"]["lr_critic"] = opt.lr_both
+            config_dict["PPO_prop"]["lr_actor"] = opt.lr_both
+            if opt.lr_actor != -1 or opt.lr_critic != -1:
+                raise ValueError("Potential conflict: both lr_both and lr_actor or lr_critic were set in the CLI")
     # RL optimization
-    if opt.gamma != -1:
-        config_dict["PPO_prop"]["gamma"] = opt.gamma
-    if opt.clip_param != -1:
-        config_dict["PPO_prop"]["clip_param"] = opt.clip_param
-    if opt.max_grad_norm != -1:
-        config_dict["PPO_prop"]["max_grad_norm"] = opt.max_grad_norm
-    if opt.ppo_update_time != -1:
-        config_dict["PPO_prop"]["ppo_update_time"] = opt.ppo_update_time
-    config_dict["PPO_prop"]["zero_eoepisode_return"] = (
-        opt.zero_eoepisode_return == "True"
-    )
+        if opt.gamma != -1:
+            print("Setting PPO gamma to {}".format(opt.gamma))
+            config_dict["PPO_prop"]["gamma"] = opt.gamma
+        if opt.clip_param != -1:
+            print("Setting PPO clip_param to {}".format(opt.clip_param))
+            config_dict["PPO_prop"]["clip_param"] = opt.clip_param
+        if opt.max_grad_norm != -1:
+            print("Setting PPO max_grad_norm to {}".format(opt.max_grad_norm))
+            config_dict["PPO_prop"]["max_grad_norm"] = opt.max_grad_norm
+        if opt.ppo_update_time != -1:
+            print("Setting PPO ppo_update_time to {}".format(opt.ppo_update_time))
+            config_dict["PPO_prop"]["ppo_update_time"] = opt.ppo_update_time
 
+    elif agent == "dqn":
+        print("-- DQN agent --")
     ## DQN agent
     # NN architecture
-    if opt.DQNnetwork_layers != "config":
-        config_dict["DQN_prop"]["network_layers"] = opt.DQNnetwork_layers
+        if opt.DQNnetwork_layers != "config":
+            print("Setting DQNnetwork_layers to {}".format(opt.DQNnetwork_layers))
+            config_dict["DQN_prop"]["network_layers"] = opt.DQNnetwork_layers
 
     # NN optimization
-    if opt.batch_size != -1:
-        config_dict["DQN_prop"]["batch_size"] = opt.batch_size
-    if opt.DQN_lr != -1:
-        config_dict["DQN_prop"]["lr"] = opt.DQN_lr
+        if opt.batch_size != -1:
+            print("Setting DQN batch_size to {}".format(opt.batch_size))
+            config_dict["DQN_prop"]["batch_size"] = opt.batch_size
+        if opt.lr != -1:
+            print("Setting DQN_lr to {}".format(opt.lr))
+            config_dict["DQN_prop"]["lr"] = opt.lr       
 
     # RL optimization
-    if opt.gamma != -1:
-        config_dict["DQN_prop"]["gamma"] = opt.gamma
-    if opt.tau != -1:
-        config_dict["DQN_prop"]["tau"] = opt.tau
-    if opt.buffer_capacity != -1:
-        config_dict["DQN_prop"]["buffer_capacity"] = opt.buffer_capacity
-    if opt.epsilon_decay != -1:
-        config_dict["DQN_prop"]["epsilon_decay"] = opt.epsilon_decay
-    if opt.min_epsilon != -1:
-        config_dict["DQN_prop"]["min_epsilon"] = opt.min_epsilon
+        if opt.gamma != -1:
+            print("Setting DQN gamma to {}".format(opt.gamma))
+            config_dict["DQN_prop"]["gamma"] = opt.gamma
+        if opt.tau != -1:
+            print("Setting DQN tau to {}".format(opt.tau))
+            config_dict["DQN_prop"]["tau"] = opt.tau
+        if opt.buffer_capacity != -1:
+            print("Setting DQN buffer_capacity to {}".format(opt.buffer_capacity))
+            config_dict["DQN_prop"]["buffer_capacity"] = opt.buffer_capacity    
+        if opt.epsilon_decay != -1:
+            print("Setting DQN epsilon_decay to {}".format(opt.epsilon_decay))
+            config_dict["DQN_prop"]["epsilon_decay"] = opt.epsilon_decay    
+        if opt.min_epsilon != -1:
+            print("Setting DQN min_epsilon to {}".format(opt.min_epsilon))
+            config_dict["DQN_prop"]["min_epsilon"] = opt.min_epsilon    
 
+    elif agent == "tarmac":
+        print("-- TarMAC agent --")
+    ## TarMAC agent
+        if opt.recurrent_policy == "False":
+            print("Setting TarMAC recurrent_policy to False")
+            config_dict["TarMAC_prop"]["recurrent_policy"] = False
+        if opt.state_size != -1:
+            print("Setting TarMAC state_size to {}".format(opt.state_size))
+            config_dict["TarMAC_prop"]["state_size"] = opt.state_size
+        if opt.communication_size != -1:
+            print("Setting TarMAC communication_size to {}".format(opt.communication_size))
+            config_dict["TarMAC_prop"]["communication_size"] = opt.communication_size
+        if opt.tarmac_communication_mode != "config":
+            print("Setting tarmac_communication_mode to {}".format(opt.tarmac_communication_mode))
+            config_dict["TarMAC_prop"]["tarmac_communication_mode"] = opt.tarmac_communication_mode
+        if opt.comm_num_hops != -1:
+            print("Setting TarMAC comm_num_hops to {}".format(opt.comm_num_hops))
+            config_dict["TarMAC_prop"]["comm_num_hops"] = opt.comm_num_hops
+        if opt.value_loss_coef != -1:
+            print("Setting TarMAC value_loss_coef to {}".format(opt.value_loss_coef))
+            config_dict["TarMAC_prop"]["value_loss_coef"] = opt.value_loss_coef
+        if opt.entropy_coef != -1:
+            print("Setting TarMAC entropy_coef to {}".format(opt.entropy_coef))
+            config_dict["TarMAC_prop"]["entropy_coef"] = opt.entropy_coef
+        if opt.max_grad_norm != -1:
+            print("Setting TarMAC max_grad_norm to {}".format(opt.max_grad_norm))
+            config_dict["TarMAC_prop"]["tarmac_max_grad_norm"] = opt.max_grad_norm
+        if opt.lr != -1:
+            print("Setting TarMAC lr to {}".format(opt.lr))
+            config_dict["TarMAC_prop"]["lr"] = opt.lr
+        if opt.eps != -1:
+            print("Setting TarMAC eps to {}".format(opt.eps))
+            config_dict["TarMAC_prop"]["tarmac_eps"] = opt.eps
+        if opt.gamma != -1:
+            print("Setting TarMAC gamma to {}".format(opt.gamma))
+            config_dict["TarMAC_prop"]["tarmac_gamma"] = opt.gamma
+        if opt.alpha != -1:
+            print("Setting TarMAC alpha to {}".format(opt.alpha))
+            config_dict["TarMAC_prop"]["tarmac_alpha"] = opt.alpha
+        if opt.nb_tarmac_updates != -1:
+            print("Setting TarMAC nb_tarmac_updates to {}".format(opt.nb_tarmac_updates))
+            config_dict["TarMAC_prop"]["nb_tarmac_updates"] = opt.nb_tarmac_updates
+        if opt.batch_size != -1:
+            print("Setting TarMAC batch_size to {}".format(opt.batch_size))
+            config_dict["TarMAC_prop"]["tarmac_batch_size"] = opt.batch_size
+
+    elif agent == "tarmac_ppo":
+        print("-- TarMAC PPO agent --")
+    ## TarMAC PPO agent
+        if opt.actor_hidden_state_size != -1:
+            print("Setting TarMAC actor_hidden_state_size to {}".format(opt.actor_hidden_state_size))
+            config_dict["TarMAC_PPO_prop"]["actor_hidden_state_size"] = opt.actor_hidden_state_size
+        if opt.communication_size != -1:
+            print("Setting TarMAC communication_size to {}".format(opt.communication_size))
+            config_dict["TarMAC_PPO_prop"]["communication_size"] = opt.communication_size
+        if opt.key_size != -1:
+            print("Setting TarMAC key_size to {}".format(opt.key_size))
+            config_dict["TarMAC_PPO_prop"]["key_size"] = opt.key_size
+        if opt.comm_num_hops != -1:
+            print("Setting TarMAC comm_num_hops to {}".format(opt.comm_num_hops))
+            config_dict["TarMAC_PPO_prop"]["comm_num_hops"] = opt.comm_num_hops
+        if opt.number_agents_comm_tarmac != -1:
+            print("Setting TarMAC number_agents_comm_tarmac to {}".format(opt.number_agents_comm_tarmac))
+            config_dict["TarMAC_PPO_prop"]["number_agents_comm_tarmac"] = opt.number_agents_comm_tarmac
+        if opt.tarmac_comm_mode != "config":
+            print("Setting tarmac_comm_mode to {}".format(opt.tarmac_comm_mode))
+            config_dict["TarMAC_PPO_prop"]["tarmac_comm_mode"] = opt.tarmac_comm_mode
+        if opt.tarmac_comm_mode != "config":
+            print("Setting tarmac_comm_mode to {}".format(opt.tarmac_comm_mode))
+            config_dict["TarMAC_PPO_prop"]["tarmac_comm_mode"] = opt.tarmac_comm_mode
+        if opt.tarmac_comm_defect_prob != -1:
+            print("Setting tarmac_comm_defect_prob to {}".format(opt.tarmac_comm_defect_prob))
+            config_dict["TarMAC_PPO_prop"]["tarmac_comm_defect_prob"] = opt.tarmac_comm_defect_prob
+        if opt.lr_critic != -1:
+            print("Setting TarMAC lr_critic to {}".format(opt.lr_critic))
+            config_dict["TarMAC_PPO_prop"]["lr_critic"] = opt.lr_critic
+        if opt.lr_actor != -1:
+            print("Setting TarMAC lr_actor to {}".format(opt.lr_actor))
+            config_dict["TarMAC_PPO_prop"]["lr_actor"] = opt.lr_actor
+        if opt.lr_both != -1:
+            print("Setting PPO lr_both to {}".format(opt.lr_both))
+            config_dict["TarMAC_PPO_prop"]["lr_critic"] = opt.lr_both
+            config_dict["TarMAC_PPO_prop"]["lr_actor"] = opt.lr_both
+            if opt.lr_actor != -1 or opt.lr_critic != -1:
+                raise ValueError("Potential conflict: both lr_both and lr_actor or lr_critic were set in the CLI")
+        if opt.eps != -1:
+            print("Setting TarMAC eps to {}".format(opt.eps))
+            config_dict["TarMAC_PPO_prop"]["eps"] = opt.eps
+        if opt.gamma != -1:
+            print("Setting TarMAC gamma to {}".format(opt.gamma))
+            config_dict["TarMAC_PPO_prop"]["gamma"] = opt.gamma
+        if opt.max_grad_norm != -1:
+            print("Setting TarMAC max_grad_norm to {}".format(opt.max_grad_norm))
+            config_dict["TarMAC_PPO_prop"]["max_grad_norm"] = opt.max_grad_norm
+        if opt.clip_param != -1:
+            print("Setting TarMAC clip_param to {}".format(opt.clip_param))
+            config_dict["TarMAC_PPO_prop"]["clip_param"] = opt.clip_param
+        if opt.ppo_update_time != -1:
+            print("Setting TarMAC ppo_update_time to {}".format(opt.ppo_update_time))
+            config_dict["TarMAC_PPO_prop"]["ppo_update_time"] = opt.ppo_update_time
+        if opt.batch_size != -1:
+            print("Setting TarMAC batch_size to {}".format(opt.batch_size))
+            config_dict["TarMAC_PPO_prop"]["batch_size"] = opt.batch_size
+        if opt.critic_hidden_layer_size != -1:
+            print("Setting TarMAC critic_hidden_layer_size to {}".format(opt.critic_hidden_layer_size))
+            config_dict["TarMAC_PPO_prop"]["critic_hidden_layer_size"] = opt.critic_hidden_layer_size
+        if opt.with_gru != 'config':
+            print("Setting TarMAC with_gru to {}".format(opt.with_gru))
+            if opt.with_gru == "True":
+                config_dict["TarMAC_PPO_prop"]["with_gru"] = True
+            else:
+                config_dict["TarMAC_PPO_prop"]["with_gru"] = False
+        if opt.with_comm != 'config':
+            print("Setting TarMAC with_comm to {}".format(opt.with_comm))
+            if opt.with_comm == "True":
+                config_dict["TarMAC_PPO_prop"]["with_comm"] = True
+            else:
+                config_dict["TarMAC_PPO_prop"]["with_comm"] = False        
+
+       ### TEST to avoid running for no reason
+        if config_dict["TarMAC_PPO_prop"]["number_agents_comm_tarmac"] >= config_dict["default_env_prop"]["cluster_prop"]["nb_agents"] and config_dict["TarMAC_PPO_prop"]["with_comm"]:
+            raise ValueError("number_agents_comm_tarmac {} is greater than or equal to nb_agents {}".format(config_dict["TarMAC_PPO_prop"]["number_agents_comm_tarmac"], config_dict["default_env_prop"]["cluster_prop"]["nb_agents"]))
+
+    ### Training process
+    if opt.nb_inter_saving_actor != -1:
+        print("Setting nb_inter_saving_actor to {}".format(opt.nb_inter_saving_actor))
+        config_dict["training_prop"]["nb_inter_saving_actor"] = opt.nb_inter_saving_actor
+    if opt.nb_test_logs != -1:
+        print("Setting nb_test_logs to {}".format(opt.nb_test_logs))
+        config_dict["training_prop"]["nb_test_logs"] = opt.nb_test_logs
+    if opt.nb_time_steps_test != -1:
+        print("Setting nb_time_steps_test to {}".format(opt.nb_time_steps_test))
+        config_dict["training_prop"]["nb_time_steps_test"] = opt.nb_time_steps_test
+    if opt.nb_tr_episodes != -1:
+        print("Setting nb_tr_episodes to {}".format(opt.nb_tr_episodes))
+        config_dict["training_prop"]["nb_tr_episodes"] = opt.nb_tr_episodes
+    if opt.nb_tr_epochs != -1:
+        print("Setting nb_tr_epochs to {}".format(opt.nb_tr_epochs))
+        config_dict["training_prop"]["nb_tr_epochs"] = opt.nb_tr_epochs
+    if opt.nb_tr_logs != -1:
+        print("Setting nb_tr_logs to {}".format(opt.nb_tr_logs))
+        config_dict["training_prop"]["nb_tr_logs"] = opt.nb_tr_logs
+    if opt.nb_time_steps != -1:
+        print("Setting nb_time_steps to {}".format(opt.nb_time_steps))
+        config_dict["training_prop"]["nb_time_steps"] = opt.nb_time_steps
 
 def adjust_config_deploy(opt, config_dict):
     if opt.nb_agents != -1:
@@ -304,6 +447,9 @@ def adjust_config_deploy(opt, config_dict):
         config_dict["default_env_prop"]["cluster_prop"][
             "agents_comm_mode"
         ] = opt.agents_comm_mode
+    if opt.comm_defect_prob != -1:
+        print("Setting comm_defect_prob to {}".format(opt.comm_defect_prob))
+        config_dict["default_env_prop"]["cluster_prop"]["comm_defect_prob"] = opt.comm_defect_prob
     if opt.layers_actor != "config":
         config_dict["PPO_prop"]["actor_layers"] = opt.layers_actor
     if opt.layers_critic != "config":
@@ -315,6 +461,46 @@ def adjust_config_deploy(opt, config_dict):
         config_dict["DQN_prop"]["network_layers"] = opt.DQNnetwork_layers
     if opt.start_datetime_mode != "config":
         config_dict["default_env_prop"]["start_datetime_mode"] = opt.start_datetime_mode
+
+
+    print("-- TarMAC PPO agent --")
+    ## TarMAC PPO agent
+    if opt.actor_hidden_state_size != -1:
+        print("Setting TarMAC actor_hidden_state_size to {}".format(opt.actor_hidden_state_size))
+        config_dict["TarMAC_PPO_prop"]["actor_hidden_state_size"] = opt.actor_hidden_state_size
+    if opt.communication_size != -1:
+        print("Setting TarMAC communication_size to {}".format(opt.communication_size))
+        config_dict["TarMAC_PPO_prop"]["communication_size"] = opt.communication_size
+    if opt.key_size != -1:
+        print("Setting TarMAC key_size to {}".format(opt.key_size))
+        config_dict["TarMAC_PPO_prop"]["key_size"] = opt.key_size
+    if opt.comm_num_hops != -1:
+        print("Setting TarMAC comm_num_hops to {}".format(opt.comm_num_hops))
+        config_dict["TarMAC_PPO_prop"]["comm_num_hops"] = opt.comm_num_hops
+    if opt.number_agents_comm_tarmac != -1:
+        print("Setting TarMAC number_agents_comm_tarmac to {}".format(opt.number_agents_comm_tarmac))
+        config_dict["TarMAC_PPO_prop"]["number_agents_comm_tarmac"] = opt.number_agents_comm_tarmac
+    if opt.tarmac_comm_mode != "config":
+        print("Setting tarmac_comm_mode to {}".format(opt.tarmac_comm_mode))
+        config_dict["TarMAC_PPO_prop"]["tarmac_comm_mode"] = opt.tarmac_comm_mode        
+    if opt.tarmac_comm_defect_prob != -1:
+        print("Setting tarmac_comm_defect_prob to {}".format(opt.tarmac_comm_defect_prob))
+        config_dict["TarMAC_PPO_prop"]["tarmac_comm_defect_prob"] = opt.tarmac_comm_defect_prob
+    if opt.critic_hidden_layer_size != -1:
+        print("Setting TarMAC critic_hidden_layer_size to {}".format(opt.critic_hidden_layer_size))
+        config_dict["TarMAC_PPO_prop"]["critic_hidden_layer_size"] = opt.critic_hidden_layer_size
+    if opt.with_gru != 'config':
+        print("Setting TarMAC with_gru to {}".format(opt.with_gru))
+        if opt.with_gru == "True":
+            config_dict["TarMAC_PPO_prop"]["with_gru"] = True
+        else:
+            config_dict["TarMAC_PPO_prop"]["with_gru"] = False
+    if opt.with_comm != 'config':
+        print("Setting TarMAC with_comm to {}".format(opt.with_comm))
+        if opt.with_comm == "True":
+            config_dict["TarMAC_PPO_prop"]["with_comm"] = True
+        else:
+            config_dict["TarMAC_PPO_prop"]["with_comm"] = False 
 
     ## State
     print("-- Agent observations --")
@@ -525,10 +711,17 @@ def get_random_date_time(start_date_time):
 
 # Multi agent management
 def get_actions(actors, obs_dict):
-    actions = {}
-    for agent_id in actors.keys():
-        actions[agent_id] = actors[agent_id].act(obs_dict)
-    return actions
+    if isinstance(actors, dict):            # One actor per agent 
+        actions = {}
+        for agent_id in actors.keys():
+            actions[agent_id] = actors[agent_id].act(obs_dict)
+        return actions
+    else:                                   # One actor for all agents (may need to change to ensure decentralized - ex: TarMAC_PPO)
+        actions_np = actors.act(obs_dict)
+        actions_dict = {}
+        for agent_id in obs_dict.keys():
+            actions_dict[agent_id] = actions_np[agent_id]
+        return actions_dict
 
 
 def datetime2List(dt):
@@ -671,9 +864,11 @@ def test_dqn_agent(agent, env, config_dict, opt, tr_time_steps):
     cumul_temp_error = 0
     cumul_signal_error = 0
 
+    nb_time_steps_test = config_dict["training_prop"]["nb_time_steps_test"]
+
     obs_dict = env.reset()
     with torch.no_grad():
-        for t in range(opt.nb_time_steps_test):
+        for t in range(nb_time_steps_test):
             action = {
                 k: agent.select_action(normStateDict(obs_dict[k], config_dict))
                 for k in obs_dict.keys()
@@ -689,9 +884,9 @@ def test_dqn_agent(agent, env, config_dict, opt, tr_time_steps):
                     obs_dict[i]["reg_signal"] - obs_dict[i]["cluster_hvac_power"]
                 ) / (env.nb_agents**2)
 
-    mean_avg_return = cumul_avg_reward / opt.nb_time_steps_test
-    mean_temp_error = cumul_temp_error / opt.nb_time_steps_test
-    mean_signal_error = cumul_signal_error / opt.nb_time_steps_test
+    mean_avg_return = cumul_avg_reward / nb_time_steps_test
+    mean_temp_error = cumul_temp_error / nb_time_steps_test
+    mean_signal_error = cumul_signal_error / nb_time_steps_test
 
     return {
         "Mean test return": mean_avg_return,
@@ -710,8 +905,10 @@ def test_ppo_agent(agent, env, config_dict, opt, tr_time_steps):
     cumul_temp_error = 0
     cumul_signal_error = 0
     obs_dict = env.reset()
+    nb_time_steps_test = config_dict["training_prop"]["nb_time_steps_test"]
+
     with torch.no_grad():
-        for t in range(opt.nb_time_steps_test):
+        for t in range(nb_time_steps_test):
             action_and_prob = {
                 k: agent.select_action(normStateDict(obs_dict[k], config_dict))
                 for k in obs_dict.keys()
@@ -727,9 +924,9 @@ def test_ppo_agent(agent, env, config_dict, opt, tr_time_steps):
                 cumul_signal_error += np.abs(
                     obs_dict[i]["reg_signal"] - obs_dict[i]["cluster_hvac_power"]
                 ) / (env.nb_agents**2)
-    mean_avg_return = cumul_avg_reward / opt.nb_time_steps_test
-    mean_temp_error = cumul_temp_error / opt.nb_time_steps_test
-    mean_signal_error = cumul_signal_error / opt.nb_time_steps_test
+    mean_avg_return = cumul_avg_reward / nb_time_steps_test
+    mean_temp_error = cumul_temp_error / nb_time_steps_test
+    mean_signal_error = cumul_signal_error / nb_time_steps_test
 
     return {
         "Mean test return": mean_avg_return,
@@ -738,6 +935,101 @@ def test_ppo_agent(agent, env, config_dict, opt, tr_time_steps):
         "Training steps": tr_time_steps,
     }
 
+def test_tarmac_ppo_agent(agent, env, config_dict, opt, tr_time_steps):
+    """
+    Test ppo agent on an episode of nb_test_timesteps, with
+    """
+    env = deepcopy(env)
+    cumul_avg_reward = 0
+    cumul_temp_error = 0
+    cumul_signal_error = 0
+    obs_dict = env.reset()
+    nb_time_steps_test = config_dict["training_prop"]["nb_time_steps_test"]
+
+    with torch.no_grad():
+        for t in range(nb_time_steps_test):
+
+            obs_all = np.array([normStateDict(obs_dict[k], config_dict) for k in obs_dict.keys()]) 
+
+            actions_and_probs = agent.select_actions(obs_all)
+            action = {k: actions_and_probs[0][k] for k in obs_dict.keys()}
+
+            obs_dict, rewards_dict, dones_dict, info_dict = env.step(action)
+            for i in range(env.nb_agents):
+                cumul_avg_reward += rewards_dict[i] / env.nb_agents
+                cumul_temp_error += (
+                    np.abs(obs_dict[i]["house_temp"] - obs_dict[i]["house_target_temp"])
+                    / env.nb_agents
+                )
+                cumul_signal_error += np.abs(
+                    obs_dict[i]["reg_signal"] - obs_dict[i]["cluster_hvac_power"]
+                ) / (env.nb_agents**2)
+    mean_avg_return = cumul_avg_reward / nb_time_steps_test
+    mean_temp_error = cumul_temp_error / nb_time_steps_test
+    mean_signal_error = cumul_signal_error / nb_time_steps_test
+
+    return {
+        "Mean test return": mean_avg_return,
+        "Test mean temperature error": mean_temp_error,
+        "Test mean signal error": mean_signal_error,
+        "Training steps": tr_time_steps,
+    } 
+
+def test_tarmac_agent(agent, env, config_dict, opt, tr_time_steps, init_states, init_comms, init_masks):
+    "Test tarmac agent on an episode of nb_test_timesteps"
+    env = deepcopy(env)
+    cumul_avg_reward = 0
+    cumul_temp_error = 0
+    cumul_signal_error = 0
+    cumul_temp_offset = 0
+    obs_dict = env.reset()
+    nb_time_steps_test = config_dict["training_prop"]["nb_time_steps_test"]
+
+    obs_shape = normStateDict(obs_dict[0], config_dict).shape       #(obs_size,)
+    obs_torch = obs_dict2obs_torch(obs_shape, obs_dict, config_dict) # [1, nb agents, obs_size]
+
+    _, actions, _, states, communications, _ = agent.act(               # Action is a tensor of shape [1, nb_agents, 1], value is a tensor of shape [1, 1], actions_log_prob is a tensor of shape [1, nb_agents, 1], 
+                obs_torch, init_states,                                         # communication is a tensor of shape [1, nb_agents, COMMUNICATION_SIZE], states is a tensor of shape [1, nb_agents, STATE_SIZE],
+                init_comms, init_masks,
+            )
+
+    actions_dict = actionsAC2actions_dict(actions)  # [1, nb_agents, 1 (action_size)]
+    obs_dict, _, _, _ = env.step(actions_dict)
+    obs = obs_dict2obs_torch(obs_shape, obs_dict, config_dict)            # [1, nb_agents, obs_size]
+
+    with torch.no_grad():
+        for t in range(1, nb_time_steps_test):
+            _, actions, _, states, communications, _ = agent.act(               # Action is a tensor of shape [1, nb_agents, 1], value is a tensor of shape [1, 1], actions_log_prob is a tensor of shape [1, nb_agents, 1], 
+                obs, states,                                         # communication is a tensor of shape [1, nb_agents, COMMUNICATION_SIZE], states is a tensor of shape [1, nb_agents, STATE_SIZE],
+                communications, init_masks,
+            )
+            actions_dict = actionsAC2actions_dict(actions)  # [1, nb_agents, 1 (action_size)]
+            obs_dict, rewards_dict, _, _ = env.step(actions_dict)
+            obs = obs_dict2obs_torch(obs_shape, obs_dict, config_dict)            # [1, nb_agents, obs_size]
+
+            for i in range(env.nb_agents):
+                cumul_avg_reward += rewards_dict[i] / env.nb_agents
+                cumul_temp_error += (
+                    np.abs(obs_dict[i]["house_temp"] - obs_dict[i]["house_target_temp"])
+                    / env.nb_agents
+                )
+                cumul_temp_offset += (obs_dict[i]["house_temp"] - obs_dict[i]["house_target_temp"]) / env.nb_agents
+                cumul_signal_error += np.abs(
+                    obs_dict[i]["reg_signal"] - obs_dict[i]["cluster_hvac_power"]
+                ) / (env.nb_agents**2)
+
+    mean_avg_return = cumul_avg_reward / nb_time_steps_test
+    mean_temp_error = cumul_temp_error / nb_time_steps_test
+    mean_temp_offset = cumul_temp_offset / nb_time_steps_test
+    mean_signal_error = cumul_signal_error / nb_time_steps_test
+
+    return {
+        "Mean test return": mean_avg_return,
+        "Test mean temperature error": mean_temp_error,
+        "Test mean temperature offset": mean_temp_offset,
+        "Test mean signal error": mean_signal_error,
+        "Training steps": tr_time_steps,
+    }
 
 def testAgentHouseTemperature(
     agent, state, low_temp, high_temp, config_dict, reg_signal
@@ -759,6 +1051,70 @@ def testAgentHouseTemperature(
         else:
             prob_on[i] = action_prob
     return prob_on
+
+def test_DDQP_agent(agent, env, config_dict, opt, tr_time_steps, init_states, init_comms, init_masks):
+    #obs_torch = init_obs
+
+    states = init_states
+    communications = init_comms
+    masks = init_masks
+    
+    nb_time_steps_test = config_dict["training_prop"]["nb_time_steps_test"]
+
+    with torch.no_grad():
+        for t in range(nb_time_steps_test):
+            _, actions, _, states, communications, _ = agent.act(obs_torch, states, communications, masks)
+            actions_dict = actionsAC2actions_dict(actions)  # [1, nb_agents, 1 (action_size)]
+            obs_dict, rewards_dict, done_dict, _ = env.step(actions_dict)
+            obs_torch = obs_dict2obs_torch(obs_shape, obs_dict, config_dict)            # [1, nb_agents, obs_size]
+            masks = torch.FloatTensor([[0.0] if done_dict[i] else [1.0] for i in range(env.nb_agents)]).unsqueeze(0)  # [1, nb_agents, 1]
+
+            for i in range(env.nb_agents):
+                cumul_avg_reward += rewards_dict[i] / env.nb_agents
+                cumul_temp_error += (
+                    np.abs(obs_dict[i]["house_temp"] - obs_dict[i]["house_target_temp"])
+                    / env.nb_agents
+                )
+                cumul_temp_offset += (obs_dict[i]["house_temp"] - obs_dict[i]["house_target_temp"])/ env.nb_agents
+                cumul_signal_error += np.abs(
+                    obs_dict[i]["reg_signal"] - obs_dict[i]["cluster_hvac_power"]
+                ) / (env.nb_agents**2)
+    mean_avg_return = cumul_avg_reward / nb_time_steps_test
+    mean_temp_error = cumul_temp_error / nb_time_steps_test
+    mean_signal_error = cumul_signal_error / nb_time_steps_test
+    mean_temp_offset = cumul_temp_offset / nb_time_steps_test
+
+    return {
+        "Mean test return": mean_avg_return,
+        "Test mean temperature error": mean_temp_error,
+        "Test mean signal error": mean_signal_error,
+        "Test mean temperature offset": mean_temp_offset,
+        "Training steps": tr_time_steps,
+    } 
+
+def obs_dict2obs_torch(obs_shape, obs_dict: dict, config_dict: dict) -> np.ndarray:
+    obs_np_array = np.empty(obs_shape, dtype=np.float32).reshape(1, -1)
+    for key in obs_dict.keys():
+        obs = normStateDict(obs_dict[key], config_dict).reshape(1, -1)
+        obs_np_array = np.concatenate((obs_np_array, obs), axis=0)
+    obs_np_array = obs_np_array[1:,:]
+    obs_np_array = np.expand_dims(obs_np_array, axis = 0)
+    return torch.from_numpy(obs_np_array).float()
+
+def actionsAC2actions_dict(actions: torch.tensor) -> dict:
+    cpu_actions = actions.view(-1,1).cpu().numpy()
+    actions_dict = {}
+    for i, action in enumerate(cpu_actions):
+        actions_dict[i] = action[0]
+    return actions_dict
+
+def reward_dict2reward_torch(reward_dict: dict) -> torch.tensor:
+    reward_np = np.array(list(reward_dict.values()))
+    reward_np_expanded_1 = np.expand_dims(reward_np, axis=1)
+    reward_np_expanded_2 = np.expand_dims(reward_np_expanded_1, axis=0) # (1, nb_agents, 1)
+    reward = torch.from_numpy(reward_np_expanded_2).float()
+    return reward
+
 
 
 def get_agent_test(agent, state, config_dict, reg_signal, low_temp=10, high_temp=30):
@@ -897,7 +1253,7 @@ def house_solar_gain(date_time, window_area, shading_coeff):
     Return:
     solar_gain: float, direct solar radiation passing through the windows at a given moment in Watts
 
-    Par¸ameters
+    Parameters
     date_time: datetime, current date and time
 
     ---
@@ -964,3 +1320,11 @@ def house_solar_gain(date_time, window_area, shading_coeff):
 
     solar_gain = window_area * shading_coeff * solar_cooling_load
     return solar_gain
+
+
+def MaskedSoftmax(x, mask, dim=-1):
+    x = x - torch.max(x, dim=dim, keepdim=True)[0]
+    x = torch.exp(x) * mask
+    x = x / torch.sum(x, dim=dim, keepdim=True)
+    x[torch.isnan(x)] = 0
+    return x

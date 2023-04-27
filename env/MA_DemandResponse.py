@@ -604,28 +604,44 @@ class SingleHouse(object):
             )
             self.disp_count = 0
 
-    def message(self, message_properties):
+    def message(self, message_properties, empty=False):
         """
         Message sent by the house to other agents
         """
-   
-        message = {
-            "current_temp_diff_to_target": self.current_temp - self.target_temp,
-            "hvac_seconds_since_off": self.hvac.seconds_since_off,
-            "hvac_curr_consumption": self.hvac.power_consumption(),
-            "hvac_max_consumption": self.hvac.max_consumption,
-            "hvac_lockout_duration": self.hvac.lockout_duration
-        }
-
-        if message_properties["thermal"]:
-            message["house_Ua"] = self.Ua
-            message["house_Cm"] = self.Cm
-            message["house_Ca"] = self.Ca
-            message["house_Hm"] = self.Hm
-        if message_properties["hvac"]:
-            message["hvac_COP"] = self.hvac.COP
-            message["hvac_latent_cooling_fraction"] = self.hvac.latent_cooling_fraction
-            message["hvac_cooling_capacity"] = self.hvac.cooling_capacity
+        if not empty:
+            message = {
+                "current_temp_diff_to_target": self.current_temp - self.target_temp,
+                "hvac_seconds_since_off": self.hvac.seconds_since_off,
+                "hvac_curr_consumption": self.hvac.power_consumption(),
+                "hvac_max_consumption": self.hvac.max_consumption,
+                "hvac_lockout_duration": self.hvac.lockout_duration
+            }
+            if message_properties["thermal"]:
+                message["house_Ua"] = self.Ua
+                message["house_Cm"] = self.Cm
+                message["house_Ca"] = self.Ca
+                message["house_Hm"] = self.Hm
+            if message_properties["hvac"]:
+                message["hvac_COP"] = self.hvac.COP
+                message["hvac_cooling_capacity"] = self.hvac.cooling_capacity
+                message["hvac_latent_cooling_fraction"] = self.hvac.latent_cooling_fraction
+        else:
+            message = {
+                "current_temp_diff_to_target": 0
+                "hvac_seconds_since_off": 0,
+                "hvac_curr_consumption": 0,
+                "hvac_max_consumption": 0,
+                "hvac_lockout_duration": 0
+            }
+            if message_properties["thermal"]:
+                message["house_Ua"] = 0
+                message["house_Cm"] = 0
+                message["house_Ca"] = 0
+                message["house_Hm"] = 0
+            if message_properties["hvac"]:
+                message["hvac_COP"] = 0
+                message["hvac_cooling_capacity"] = 0
+                message["hvac_latent_cooling_fraction"] = 0
         return message
 
     def update_temperature(self, od_temp, time_step, date_time):
@@ -855,6 +871,11 @@ class ClusterHouses(object):
                     agent_id_new = y_new*row_size + x_new
                     ids_houses_messages.append(agent_id_new)
                 self.agent_communicators[agent_id] = ids_houses_messages
+            print("self.agent_communicators: {}".format(self.agent_communicators))
+        
+        elif self.cluster_prop["agents_comm_mode"] == "no_message":
+            for agent_id in self.agent_ids:
+                self.agent_communicators[agent_id] = []
 
         else:
             raise ValueError(
@@ -928,11 +949,18 @@ class ClusterHouses(object):
             else:
                 ids_houses_messages = self.agent_communicators[house_id]
 
+
             cluster_obs_dict[house_id]["message"] = []
             for id_house_message in ids_houses_messages:
-                cluster_obs_dict[house_id]["message"].append(
-                    self.houses[id_house_message].message(self.env_prop["message_properties"])
-                )
+                if np.random.rand() > self.cluster_prop["comm_defect_prob"]:
+                    cluster_obs_dict[house_id]["message"].append(
+                        self.houses[id_house_message].message(self.env_prop["message_properties"])
+                    )
+                else:
+                    
+                    cluster_obs_dict[house_id]["message"].append(
+                        self.houses[id_house_message].message(self.env_prop["message_properties"], empty=True)
+                    )
         return cluster_obs_dict
 
     def step(self, date_time, actions_dict, time_step):
