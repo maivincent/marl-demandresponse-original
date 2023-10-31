@@ -141,6 +141,21 @@ class MADemandResponseEnv(MultiAgentEnv):
 
         Parameters:
         self
+
+        这段代码定义了reset方法，用于重置环境到初始状态，并生成每个TCL代理的观察结果。
+            首先调用build_environment方法，初始化或重置环境中各个组件的状态。
+            调用make_cluster_obs_dict方法，生成集群观察字典，包含每个代理的观察结果。
+            获取电网的当前调节信号和集群的HVAC总功率。
+            调用merge_cluster_powergrid_obs方法，将集群观察字典、电网调节信号和集群HVAC功率合并，生成最终的观察字典。
+            返回观察字典，供代理在训练或决策时使用。        
+
+        重置环境。
+
+        返回:
+        obs_dict: 字典，包含每个TCL代理的观察结果。
+
+        参数:
+        self
         """
 
         self.build_environment()
@@ -149,6 +164,7 @@ class MADemandResponseEnv(MultiAgentEnv):
         power_grid_reg_signal = self.power_grid.current_signal
         cluster_hvac_power = self.cluster.cluster_hvac_power
 
+        # 19个集群观察结果+电网的调节信号+集群的HVAC功率=21
         obs_dict = self.merge_cluster_powergrid_obs(
             cluster_obs_dict, power_grid_reg_signal, cluster_hvac_power
         )
@@ -242,6 +258,7 @@ class MADemandResponseEnv(MultiAgentEnv):
         target_temp: a float. Target indoors air temperature, in Celsius.
         deadband: a float. Margin of tolerance for indoors air temperature difference, in Celsius.
         house_temp: a float. Current indoors air temperature, in Celsius
+        该函数计算了一个房屋与其目标温度之间的温度惩罚。这个惩罚是基于房屋的当前温度与其目标温度之间的差异来计算的。函数的主要目的是为了在强化学习中为智能体提供关于其行为好坏的反馈。
         """
         temp_penalty_mode = self.default_env_prop["reward_prop"]["temp_penalty_mode"]
 
@@ -894,15 +911,33 @@ class ClusterHouses(object):
         Parameters:
         self
         date_time: datetime, current date and time
+        
+        这段代码定义了一个make_cluster_obs_dict方法，用于生成所有代理的集群观察字典。这个字典包含了每个TCL（Thermostatically Controlled Load，恒温控制负载）代理的观察结果，用于训练和决策。
+            方法首先初始化一个空字典cluster_obs_dict，用于存储所有代理的观察结果。
+            遍历所有房屋（代理），为每个房屋（代理）生成观察结果，并存储到字典中。
+            从集群、房屋和HVAC（Heating, Ventilation, and Air Conditioning，暖通空调）中获取动态和静态的观察值。
+            如果代理间通信是随机样本模式，则从其他代理中随机选择一些代理，获取它们的消息。
+            将所有观察结果和消息存储到字典中，并返回这个字典。
+        这个方法的目的是为了在强化学习训练过程中，为每个代理提供其需要的环境信息和其他代理的信息，以便代理能够根据这些信息做出决策。
+        
+        为所有代理生成集群观察字典。 
+        返回:
+        cluster_obs_dict: 字典，包含每个TCL代理的集群观察结果。
+        参数:
+        self
+        date_time: datetime, 当前日期和时间
         """
+        # 初始化集群观察字典
         cluster_obs_dict = {}
         for house_id in self.houses.keys():
             cluster_obs_dict[house_id] = {}
 
+            # 获取房屋和HVAC对象
             # Getting the house and the HVAC
             house = self.houses[house_id]
             hvac = house.hvac
 
+            # 从集群中获取动态值
             # Dynamic values from cluster
             cluster_obs_dict[house_id]["OD_temp"] = self.current_OD_temp
             cluster_obs_dict[house_id]["datetime"] = date_time
@@ -918,6 +953,7 @@ class ClusterHouses(object):
             ] = hvac.seconds_since_off
             cluster_obs_dict[house_id]["hvac_lockout"] = hvac.lockout
 
+            # 从房屋中获取常量值（以后可能会更改）
             # Supposedly constant values from house (may be changed later)
             cluster_obs_dict[house_id]["house_target_temp"] = house.target_temp
             cluster_obs_dict[house_id]["house_deadband"] = house.deadband
@@ -950,14 +986,17 @@ class ClusterHouses(object):
                 ids_houses_messages = self.agent_communicators[house_id]
 
 
+            # 初始化消息列表
             cluster_obs_dict[house_id]["message"] = []
             for id_house_message in ids_houses_messages:
                 if np.random.rand() > self.cluster_prop["comm_defect_prob"]:
+                    # 添加正常消息
                     cluster_obs_dict[house_id]["message"].append(
                         self.houses[id_house_message].message(self.env_prop["message_properties"])
                     )
                 else:
                     
+                    # 添加空消息
                     cluster_obs_dict[house_id]["message"].append(
                         self.houses[id_house_message].message(self.env_prop["message_properties"], empty=True)
                     )

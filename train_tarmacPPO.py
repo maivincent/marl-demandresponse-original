@@ -19,6 +19,8 @@ import numpy as np
 from collections import namedtuple
 import wandb
 import torch
+# efan
+import datetime
 
 #%% Functions
 
@@ -28,6 +30,8 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
     id_rng = np.random.default_rng()
     unique_ID = str(int(id_rng.random() * 1000000))
+    # efan
+    current_time = datetime.datetime.now().strftime("-%Y%m%d-%H:%M:%S-")  
 
     nb_time_steps = config_dict["training_prop"]["nb_time_steps"]
     nb_tr_episodes = config_dict["training_prop"]["nb_tr_episodes"]
@@ -53,7 +57,7 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
     time_steps_per_saving_actor = int(
         nb_time_steps / (nb_inter_saving_actor + 1)
     )
-    metrics = Metrics()
+    metrics = Metrics()#wangli 
 
     # Get first observation
     obs_dict = env.reset()
@@ -131,7 +135,9 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
                 print("Training step - {}".format(t))
 
         if opt.save_actor_name and t % time_steps_per_saving_actor == 0 and t != 0:
-            path = os.path.join(".", "actors", opt.save_actor_name + unique_ID)
+            # efan
+            path = os.path.join(".", "actors", opt.save_actor_name + current_time + unique_ID)
+            # path = os.path.join(".", "actors", opt.save_actor_name + unique_ID)
             saveActorNetDict(agent, path, t)
             if log_wandb:
                 wandb.save(os.path.join(path, "actor" + str(t) + ".pth"))
@@ -140,7 +146,9 @@ def train_tarmac_ppo(env, agent, opt, config_dict, render, log_wandb, wandb_run)
         renderer.__del__(obs_dict)
 
     if opt.save_actor_name:
-        path = os.path.join(".", "actors", opt.save_actor_name + unique_ID)
+        # efan
+        path = os.path.join(".", "actors", opt.save_actor_name + current_time + unique_ID)
+        # path = os.path.join(".", "actors", opt.save_actor_name + unique_ID)
         saveActorNetDict(agent, path)
         if log_wandb:
             wandb.save(os.path.join(path, "actor.pth"))

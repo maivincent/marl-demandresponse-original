@@ -11,6 +11,8 @@ import random
 import os
 import numpy as np
 import wandb
+# efan
+import datetime
 
 #%% Functions
 
@@ -22,6 +24,8 @@ def decrease(epsilon, opt):
 def train_dqn(env, agent, opt, config_dict, render, log_wandb, wandb_run):
     id_rng = np.random.default_rng()
     unique_ID = str(int(id_rng.random() * 1000000))
+    # efan
+    current_time = datetime.datetime.now().strftime("-%Y%m%d-%H:%M:%S-")  
 
     nb_time_steps = config_dict["training_prop"]["nb_time_steps"]
     nb_tr_episodes = config_dict["training_prop"]["nb_tr_episodes"]
@@ -110,7 +114,9 @@ def train_dqn(env, agent, opt, config_dict, render, log_wandb, wandb_run):
 
 
         if opt.save_actor_name and t % time_steps_per_saving_actor == 0 and t != 0:
-            path = os.path.join(".", "actors", opt.save_actor_name + unique_ID)
+            # efan
+            path = os.path.join(".", "actors", opt.save_actor_name + current_time + unique_ID)
+            # path = os.path.join(".", "actors", opt.save_actor_name + unique_ID)
             saveDQNNetDict(agent, path, t)
             if log_wandb:
                 wandb.save(os.path.join(path, "DQN" + str(t) + ".pth"))
@@ -120,7 +126,9 @@ def train_dqn(env, agent, opt, config_dict, render, log_wandb, wandb_run):
         
     # Save agent
     if opt.save_actor_name:
-        path = os.path.join(".", "actors", opt.save_actor_name + unique_ID)
+        # efan
+        path = os.path.join(".", "actors", opt.save_actor_name + current_time + unique_ID)
+        # path = os.path.join(".", "actors", opt.save_actor_name + unique_ID)
         saveDQNNetDict(agent, path)
         if log_wandb:
             wandb.save(os.path.join(path, "DQN.pth"))

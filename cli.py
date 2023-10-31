@@ -9,18 +9,18 @@ def cli_train():
     parser.add_argument(
         "--exp",
         type=str,
-        required=True,
+        default='train_efan',#  默认的实验名,随便起. 原来是required=True,
         help="Experiment name",
     )
 
     parser.add_argument(
-        "--no_wandb",
+        "no_wandb",
         action="store_true",
         help="Add to prevent logging to wandb",
     )
 
     parser.add_argument(
-        "--render",
+        "--render",# 原来是"--render",
         action="store_true",
         help="Add to generate a visual render of the simulation",
     )
@@ -35,14 +35,14 @@ def cli_train():
     parser.add_argument(
         "--save_actor_name",
         type=str,
-        default=None,
+        default="MADDPG",  #重要Efan   default=None,
         help="Name to store the actor agent after training",
     )
 
     parser.add_argument(
         "--nb_inter_saving_actor",
         type=int,
-        default=0,
+        default=-1,  # 原来default=0,
         help="Number of intermediate times the actor is saved during training.",
     )
 
@@ -51,7 +51,7 @@ def cli_train():
     parser.add_argument(
         "--nb_agents",
         type=int,
-        default=-1,
+        default=20, # 原来default=-1,需要终端输入
         help="Number of agents (TCLs)",
     )
 
@@ -125,7 +125,7 @@ def cli_train():
     )
 
     parser.add_argument(
-        "--no_solar_gain",
+        "no_solar_gain", # 原来是"--no_solar_gain",需要终端输入
         action="store_true",
         help="Removes the solar gain from the simulation.",
     )
@@ -246,7 +246,7 @@ def cli_train():
         "--message_thermal",
         default='config',
         choices = ['True','False', 'config'],
-        help="Include themal parameters in messages")
+        help="Include thermal parameters in messages")
     
     parser.add_argument(
         "--message_hvac",
@@ -259,7 +259,7 @@ def cli_train():
     parser.add_argument(
         "--agent_type",
         type=str,
-        required=True,
+        default='maddpg', # 重要Efan train = {"ppo": train_ppo, "mappo": train_mappo, "dqn": train_dqn, "tarmac": train_tarmac, "maddpg": train_ddpg, "tarmac_ppo": train_tarmac_ppo}. 原来是required=True,
         help="Type of agent (dqn, ppo)",
     )
 
@@ -269,6 +269,7 @@ def cli_train():
         "--nb_agents_comm",
         type=int,
         default=-1,
+        # 单个房屋可联系的最大房屋数
         help="Maximal number of agents each agent can communicate with.",
     )
 
@@ -382,7 +383,7 @@ def cli_train():
     parser.add_argument(
         "--DDPG_shared",
         type=float,
-        default=-1,
+        default=True,  # 重要 原来default=-1,
         help="Temperature parameter for gumbel_softmax in the DDPG.",
     )
     ## DQN agent (only those which were not already added in PPO agent)
@@ -450,6 +451,9 @@ def cli_train():
         "--tarmac_communication_mode",
         type=str,
         default="config",
+        # 1.没有通信;
+        # 2.基于它们的状态通信，并使用递归注意力机制,这允许智能体根据其他智能体的状态和它们之间的关系来加权和汇总信息;
+        # 3.直接基于它们的状态通信，不使用任何特定的注意力机制。
         help="Communication mode for tarmac (can be: 'no_comm', 'from_states_rec_att', 'from_states')"
     )
     parser.add_argument(
@@ -608,21 +612,22 @@ def cli_deploy(agents_dict):
         "--agent",
         type=str,
         choices=agents_dict.keys(),
-        required=True,
+        # 重要Efan    BangBang、DeadbandBangBang、Basic、AlwaysOn、GreedyMyopic、MPC、PPO、MAPPO、DQN、MADDPG、TarmacPPO
+        default="MADDPG",  # 原来required=True,
         help="Agent for control",
     )
 
     parser.add_argument(
         "--render_after",
         type=int,
-        default=-1,
+        default=-1,  # 原来default=-1
         help="Delay in time steps before rendering",
     )
 
     parser.add_argument(
         "--nb_agents",
         type=int,
-        default=1,
+        default=50,  # 原来default=1,
         help="Number of agents (TCLs)",
     )
 
@@ -662,13 +667,13 @@ def cli_deploy(agents_dict):
     )
 
     parser.add_argument(
-        "--no_wandb",
+        "no_wandb", #原来是 "--no_wandb",
         action="store_true",
         help="Add to prevent logging to wandb",
     )
 
     parser.add_argument(
-        "--render",
+        "--render", # 原来是"--render",
         action="store_true",
         help="Add to generate a visual render of the simulation",
     )
@@ -695,7 +700,10 @@ def cli_deploy(agents_dict):
     )
 
     parser.add_argument(
-        "--actor_name", type=str, default=None, help="Name of the trained agent to load"
+        "--actor_name", type=str, 
+        # 重要Efan  TarmacPPO[64, 51],MAPPO[100, 51],PPO[100, 51]
+        default="DQN-20231020-22:48:29-959267", # 如"MA-PPO-HE241476",即训练好的文件夹名在./actor下面. 原来default=None,
+        help="Name of the trained agent to load"
     )
 
     parser.add_argument(
@@ -734,7 +742,7 @@ def cli_deploy(agents_dict):
     )
 
     parser.add_argument(
-        "--no_solar_gain",
+        "no_solar_gain",# 原来是"--no_solar_gain",
         action="store_true",
         help="Removes the solar gain from the simulation.",
     )
@@ -805,7 +813,7 @@ def cli_deploy(agents_dict):
         "--message_thermal",
         default='config',
         choices = ['True','False', 'config'],
-        help="Include themal parameters in messages")
+        help="Include thermal parameters in messages")
     
     parser.add_argument(
         "--message_hvac",

@@ -44,10 +44,13 @@ class TestPowerInterpolator(unittest.TestCase):
     def __init__(self, *args, **kwargs):
         super(TestPowerInterpolator, self).__init__(*args, **kwargs)
 
-        path = './mergedGridSearchResultFinal.npy'
-        with open('./interp_parameters_dict.json') as json_file:
+        # efan 原来是./mergedGridSearchResultFinal.npy
+        path = 'monteCarlo/mergedGridSearchResultFinal.npy'
+        # efan 原来是./interp_parameters_dict.json
+        with open('monteCarlo/interp_parameters_dict.json') as json_file:  
             parameters_dict = json.load(json_file)
-        with open('./interp_dict_keys.csv') as f:
+        # efan 原来是./interp_dict_keys.csv
+        with open('monteCarlo/interp_dict_keys.csv') as f:
             reader = csv.reader(f)
             self.dict_keys = list(reader)[0]
 

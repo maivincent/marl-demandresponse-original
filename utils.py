@@ -738,6 +738,30 @@ def superDict2List(SDict, id):
 
 
 def normStateDict(sDict, config_dict, returnDict=False):
+    """
+    输入len为21,输出len为51. 消息传递了10*5个状态,但会经过计算删掉sDict中的重复部分. 不仅包含了输入字典中的状态，还包括了一些额外计算出的状态和从消息中提取出的状态
+    
+    对输入的状态字典sDict进行标准化处理，使其值在一个合适的范围内，便于模型的训练。
+    函数接受三个参数：状态字典sDict，配置字典config_dict，以及一个布尔值returnDict，用于决定函数返回的是字典还是扁平化的NumPy数组. 
+
+    以下是函数的主要步骤和组件：
+    提取默认属性：从config_dict中提取默认的房屋、HVAC和环境属性。
+    初始化结果字典：创建一个空字典result，用于存储标准化后的状态值。
+    温度和除数键的处理：
+        k_temp：包含需要通过减去20并除以5来标准化的温度键。
+        k_div：包含需要通过除以其默认值来标准化的键。
+    状态值的标准化：
+        对于k_temp中的键，执行(sDict[k] - 20) / 5操作。
+        对于k_div中的键，根据它们在默认属性字典中的值进行除法操作。
+    特殊状态值的处理：
+        处理日期和时间相关的状态，如sin_day、cos_day、sin_hr和cos_hr。
+        处理太阳能增益、HVAC状态和调节信号。
+    消息的处理：
+       如果状态字典中包含消息，则对消息中的每个元素进行标准化处理。
+    返回结果：
+        如果returnDict为True，则返回标准化后的状态字典。
+        如果returnDict为False，则返回扁平化的NumPy数组，其中包含所有标准化后的状态值。
+    """
     default_house_prop = config_dict["default_house_prop"]
     default_hvac_prop = config_dict["default_hvac_prop"]
  
@@ -750,6 +774,7 @@ def normStateDict(sDict, config_dict, returnDict=False):
     k_temp = ["house_temp", "house_mass_temp", "house_target_temp"]
     k_div = ["hvac_cooling_capacity"]
 
+    # 在状态中包含室外温度和室内温度参数。也可在交流信息中包含热参数。
     if state_prop["thermal"]:
         k_temp += ["OD_temp"]
         k_div += [
@@ -765,12 +790,14 @@ def normStateDict(sDict, config_dict, returnDict=False):
             "hvac_latent_cooling_fraction",
         ]
        
+    # 温度归一化: 假设温度在15到30度之间。
     # k_lockdown = ['hvac_seconds_since_off', 'hvac_lockout_duration']
     for k in k_temp:
         # Assuming the temperatures will be between 15 to 30, centered around 20 -> between -1 and 2, centered around 0.
         result[k] = (sDict[k] - 20) / 5
     result["house_deadband"] = sDict["house_deadband"]
 
+    # 其他状态归一化: 包括时间、太阳能增益等。
     if state_prop["day"]:
         day = sDict["datetime"].timetuple().tm_yday
         result["sin_day"] = np.sin(day * 2 * np.pi / 365)
@@ -811,6 +838,7 @@ def normStateDict(sDict, config_dict, returnDict=False):
         * default_env_prop["cluster_prop"]["nb_agents"]
     )
 
+    # 消息归一化: 从其他智能体接收的消息。
     temp_messages = []
     for message in sDict["message"]:
         r_message = {}

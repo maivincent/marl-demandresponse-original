@@ -19,6 +19,8 @@ import random
 import numpy as np
 from collections import namedtuple
 import wandb
+# efan
+import datetime
 
 #%% Functions
 
@@ -26,6 +28,8 @@ def train_mappo(env, agent, opt, config_dict, render, log_wandb, wandb_run):
 
     id_rng = np.random.default_rng()
     unique_ID = str(int(id_rng.random() * 1000000))
+    # efan
+    current_time = datetime.datetime.now().strftime("-%Y%m%d-%H:%M:%S-")  
 
     nb_time_steps = config_dict["training_prop"]["nb_time_steps"]
     nb_tr_episodes = config_dict["training_prop"]["nb_tr_episodes"]
@@ -50,7 +54,7 @@ def train_mappo(env, agent, opt, config_dict, render, log_wandb, wandb_run):
 
     # Get first observation
     obs_dict = env.reset()
-
+    #nb_time_steps = 3276800????
     for t in range(nb_time_steps):
         
         # Render observation
@@ -115,7 +119,9 @@ def train_mappo(env, agent, opt, config_dict, render, log_wandb, wandb_run):
                 print("Training step - {}".format(t))
 
         if opt.save_actor_name and t % time_steps_per_saving_actor == 0 and t != 0:
-            path = os.path.join(".", "actors", opt.save_actor_name + unique_ID)
+            # efan
+            path = os.path.join(".", "actors", opt.save_actor_name + current_time + unique_ID)
+            # path = os.path.join(".", "actors", opt.save_actor_name + unique_ID)
             saveActorNetDict(agent, path, t)
             if log_wandb:
                 wandb.save(os.path.join(path, "actor" + str(t) + ".pth"))
@@ -125,7 +131,9 @@ def train_mappo(env, agent, opt, config_dict, render, log_wandb, wandb_run):
 
 
     if opt.save_actor_name:
-        path = os.path.join(".", "actors", opt.save_actor_name + unique_ID)
+        # efan
+        path = os.path.join(".", "actors", opt.save_actor_name + current_time + unique_ID)
+        # path = os.path.join(".", "actors", opt.save_actor_name + unique_ID)
         saveActorNetDict(agent, path)
         if log_wandb:
             wandb.save(os.path.join(path, "actor.pth"))

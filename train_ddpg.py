@@ -21,6 +21,8 @@ import random
 import numpy as np
 from collections import namedtuple
 import wandb
+# efan
+import datetime
 
 #%% Functions
 
@@ -36,6 +38,8 @@ def train_ddpg(env, agent, opt, config_dict, render, log_wandb, wandb_run):
     maddpg = agent
     id_rng = np.random.default_rng()
     unique_ID = str(int(id_rng.random() * 1000000))
+    # efan
+    current_time = datetime.datetime.now().strftime("-%Y%m%d-%H:%M:%S-")
 
     nb_time_steps = config_dict["training_prop"]["nb_time_steps"]
     nb_tr_episodes = config_dict["DDPG_prop"]["episode_num"]
@@ -63,6 +67,8 @@ def train_ddpg(env, agent, opt, config_dict, render, log_wandb, wandb_run):
     step = 0  # global step counter
     # agent_num = env.num_agents
     # reward of each episode of each agent
+    # 字典推导式是Python中一种简洁且高效的创建字典的方法:{key_expression: value_expression for item in iterable}
+    # 这里的key_expression是字典中键的表达式，value_expression是字典中值的表达式，iterable是一个可迭代对象，item是从iterable中取出的每个元素。
     episode_rewards = {
         agent_id: np.zeros(config_dict["DDPG_prop"]["episode_num"])
         for agent_id in range(opt.nb_agents)
@@ -73,7 +79,12 @@ def train_ddpg(env, agent, opt, config_dict, render, log_wandb, wandb_run):
         obs = env.reset()
         if render:
             renderer.render(obs)
+        # iter(obs): 创建一个迭代器，用于遍历字典obs。
+        # next(iter(obs)): 从迭代器中获取下一个元素，也就是字典obs的第一个键。
+        # obs[next(iter(obs))]: 使用获取到的键来从字典obs中获取对应的值。
+        # normStateDict(obs[next(iter(obs))], config_dict): 调用函数normStateDict，传入上一步获取到的值和字典config_dict作为参数。
         obs_ = normStateDict(obs[next(iter(obs))], config_dict)
+        # 使用字典推导式为每个智能体创建了一个观察字典obs_dict。字典的键是智能体的ID（从0到opt.nb_agents - 1），值都是obs_。这意味着在这个时刻，所有智能体共享相同的观察值obs_。这种设计可能是基于环境的特性，其中所有智能体在某些情况下可能会接收相同的观察信息。如果每个智能体应该有不同的观察值，那么这段代码可能需要进行修改。
         obs_dict = {
             agent_id: obs_  # env.action_space(agent_id).sample()
             for agent_id in range(opt.nb_agents)
@@ -159,6 +170,8 @@ def train_ddpg(env, agent, opt, config_dict, render, log_wandb, wandb_run):
             and step % time_steps_per_saving_actor == 0
             and step != 0
         ):
+            # efan
+            # path = os.path.join(".", "actors", opt.save_actor_name + current_time + unique_ID)
             path = os.path.join(".", "actors", opt.save_actor_name + unique_ID)
             saveDDPGDict(agent, path, step)
             if log_wandb:

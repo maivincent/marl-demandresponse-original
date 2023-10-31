@@ -23,7 +23,9 @@ import random
 os.environ["WANDB_SILENT"] = "true"
 
 def main():
+    # 先载入cli.py的parser参数
     opt = cli_train()
+    # 根据cli.py的parser参数,更改 config_dict 的配置。
     adjust_config_train(opt, config_dict)
     render, log_wandb, wandb_run = render_and_wandb_init(opt, config_dict)
 
@@ -31,7 +33,7 @@ def main():
     random.seed(opt.env_seed)
     env = MADemandResponseEnv(config_dict)
     obs_dict = env.reset()
-    print(obs_dict)
+    print(obs_dict[0])  # efan, 原来print(obs_dict)
     # Select agent
     agents = {"ppo": PPO, "mappo": MAPPO, "dqn": DQN, "tarmac": TARMAC, "maddpg": MADDPG, "tarmac_ppo": TarMAC_PPO}
 
